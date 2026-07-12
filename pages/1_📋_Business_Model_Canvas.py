@@ -7,7 +7,7 @@ init_data()
 data = get_data()
 
 st.sidebar.title("🧭 Gestor Estratégico")
-sidebar_api_key_input()
+#sidebar_api_key_input()
 sidebar_data_controls()
 
 st.title("📋 Business Model Canvas")
