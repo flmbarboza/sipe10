@@ -30,17 +30,44 @@ nomes_colunas = {
     "status": "Status",
 }
 
-df = pd.DataFrame(itens) if itens else pd.DataFrame(columns=colunas)
-for col in colunas:
-    if col not in df.columns:
-        df[col] = ""
+# Garantir que todos os itens tenham todas as colunas
+for item in itens:
+    for col in colunas:
+        if col not in item:
+            item[col] = ""
+
+# Criar DataFrame com tipos corretos
+if itens:
+    df = pd.DataFrame(itens)
+    for col in colunas:
+        if col not in df.columns:
+            df[col] = ""
+        # Garantir que colunas de texto sejam string
+        if col != "status":  # status é seletor, mantém como string
+            df[col] = df[col].astype(str)
+else:
+    # DataFrame vazio com tipos corretos
+    df = pd.DataFrame({
+        "what": pd.Series(dtype="object"),
+        "why": pd.Series(dtype="object"),
+        "where": pd.Series(dtype="object"),
+        "when": pd.Series(dtype="object"),
+        "who": pd.Series(dtype="object"),
+        "how": pd.Series(dtype="object"),
+        "how_much": pd.Series(dtype="object"),
+        "status": pd.Series(dtype="object")
+    })
+
+# Hash para forçar recriação
+df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
+editor_key = f"editor_5w2h_{df_hash}"
 
 edited = st.data_editor(
     df,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key="editor_5w2h",
+    key=editor_key,
     column_config={
         "what": st.column_config.TextColumn(nomes_colunas["what"], width="large"),
         "why": st.column_config.TextColumn(nomes_colunas["why"], width="large"),
@@ -54,14 +81,36 @@ edited = st.data_editor(
         ),
     },
 )
-data["acao_5w2h"] = edited.fillna("").to_dict("records")
 
-st.download_button(
-    "⬇️ Baixar Plano de Ação (CSV)",
-    data=edited.rename(columns=nomes_colunas).to_csv(index=False).encode("utf-8-sig"),
-    file_name="plano_de_acao_5w2h.csv",
-    mime="text/csv",
-)
+# Processar dados editados
+if edited is not None:
+    edited = edited.fillna("")
+    novos_itens = []
+    for _, row in edited.iterrows():
+        # Verificar se tem pelo menos o "what" preenchido (ação principal)
+        what = str(row.get("what", "")).strip()
+        if what:  # Só adicionar se tiver o "what"
+            novo_item = {}
+            for col in colunas:
+                valor = row.get(col, "")
+                if col == "status" and not valor:
+                    valor = "Não iniciado"
+                novo_item[col] = str(valor).strip() if col != "status" else valor
+            novos_itens.append(novo_item)
+    
+    if novos_itens != data["acao_5w2h"]:
+        data["acao_5w2h"] = novos_itens
+        st.rerun()
+
+# Download button precisa usar os dados atuais
+if data["acao_5w2h"]:
+    df_download = pd.DataFrame(data["acao_5w2h"])
+    st.download_button(
+        "⬇️ Baixar Plano de Ação (CSV)",
+        data=df_download.rename(columns=nomes_colunas).to_csv(index=False).encode("utf-8-sig"),
+        file_name="plano_de_acao_5w2h.csv",
+        mime="text/csv",
+    )
 
 st.divider()
 
