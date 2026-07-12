@@ -47,23 +47,43 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
         if "pestel" not in data:
             data["pestel"] = {}
         
-        # Criar uma cópia dos dados para edição
+        # Garantir que a categoria existe
+        if cat not in data["pestel"]:
+            data["pestel"][cat] = []
+        
+        # Buscar dados atuais
         itens = data["pestel"].get(cat, [])
         
-        # Garantir que todos os itens tenham todos os campos
-        for item in itens:
-            if "descricao" not in item:
-                item["descricao"] = ""
-            if "tipo" not in item:
-                item["tipo"] = "Oportunidade"
-            if "impacto" not in item:
-                item["impacto"] = "Médio"
+        # Criar DataFrame garantindo colunas com valores padrão
+        if itens:
+            df = pd.DataFrame(itens)
+            # Garantir colunas existentes
+            for col in ["descricao", "tipo", "impacto"]:
+                if col not in df.columns:
+                    if col == "tipo":
+                        df[col] = "Oportunidade"
+                    elif col == "impacto":
+                        df[col] = "Médio"
+                    else:
+                        df[col] = ""
+        else:
+            # DataFrame vazio com estrutura correta
+            df = pd.DataFrame({
+                "descricao": pd.Series(dtype="string"),
+                "tipo": pd.Series(dtype="string"),
+                "impacto": pd.Series(dtype="string")
+            })
         
-        df = pd.DataFrame(itens) if itens else pd.DataFrame(columns=["descricao", "tipo", "impacto"])
+        # CORREÇÃO: Definir valores padrão para novas linhas
+        # Criar um dicionário de defaults para o data_editor
+        column_defaults = {
+            "descricao": "",
+            "tipo": "Oportunidade",
+            "impacto": "Médio"
+        }
         
-        # Usar um key único que inclui o estado atual dos dados para forçar recriação
-        df_hash = hash(str(itens)) if itens else 0
-        editor_key = f"editor_pestel_{cat}_{df_hash}"
+        # Usar uma chave estável baseada no estado atual
+        editor_key = f"editor_pestel_{cat}"
         
         edited = st.data_editor(
             df, 
@@ -76,32 +96,40 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
                 "impacto": st.column_config.SelectboxColumn("Impacto", options=IMPACTOS),
             },
             hide_index=True,
+            # CORREÇÃO PRINCIPAL: Forçar valores padrão para novas linhas
+            column_defaults=column_defaults
         )
         
-        # Verificar se houve mudanças usando comparação profunda
-        novos_itens = edited.fillna("").to_dict("records")
-        
-        # Remover itens vazios (sem descrição)
-        novos_itens = [item for item in novos_itens if item.get("descricao", "").strip()]
-        
-        # Só atualizar se houve mudança real
-        itens_atuais = data["pestel"].get(cat, [])
-        
-        # Comparar de forma robusta
-        if len(novos_itens) != len(itens_atuais):
-            data["pestel"][cat] = novos_itens
-        else:
-            # Verificar se o conteúdo mudou
-            mudou = False
-            for i, (novo, atual) in enumerate(zip(novos_itens, itens_atuais)):
-                if novo.get("descricao") != atual.get("descricao") or \
-                   novo.get("tipo") != atual.get("tipo") or \
-                   novo.get("impacto") != atual.get("impacto"):
-                    mudou = True
-                    break
+        # Processar dados editados
+        if edited is not None and not edited.empty:
+            # Substituir NaN por valores vazios
+            edited = edited.fillna("")
             
-            if mudou:
+            # Para novas linhas, garantir que tipo e impacto tenham valores
+            for idx, row in edited.iterrows():
+                if pd.isna(row.get("tipo")) or row.get("tipo") == "":
+                    edited.at[idx, "tipo"] = "Oportunidade"
+                if pd.isna(row.get("impacto")) or row.get("impacto") == "":
+                    edited.at[idx, "impacto"] = "Médio"
+            
+            # Converter para lista de dicionários, ignorando linhas sem descrição
+            novos_itens = []
+            for _, row in edited.iterrows():
+                descricao = row.get("descricao", "").strip()
+                if descricao:  # Só adicionar se tiver descrição
+                    novos_itens.append({
+                        "descricao": descricao,
+                        "tipo": row.get("tipo", "Oportunidade"),
+                        "impacto": row.get("impacto", "Médio")
+                    })
+            
+            # Atualizar dados apenas se houve mudança
+            if novos_itens != data["pestel"].get(cat, []):
                 data["pestel"][cat] = novos_itens
+        else:
+            # Se o editor está vazio, garantir que a categoria tenha lista vazia
+            if data["pestel"].get(cat, []):
+                data["pestel"][cat] = []
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
             setor = data.get("empresa", {}).get("setor") or "não informado"
