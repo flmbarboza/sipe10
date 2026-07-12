@@ -64,7 +64,7 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             },
             hide_index=True,
         )
-        st.session_state.data["pestel"][cat] = (
+        data["pestel"][cat] = (
             edited
             .fillna("")
             .to_dict("records")
