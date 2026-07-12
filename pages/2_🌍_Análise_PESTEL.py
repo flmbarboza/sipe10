@@ -256,8 +256,12 @@ st.info(
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com a Análise PESTEL")
 
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
+col1, col2, col3 = st.columns([4, 1, 1])
+
+with col2:
+    enviar = st.button("👽 Enviar", width="stretch")
+
+with col3:
     if st.button("🗑️ Limpar Chat", width="stretch"):
         st.session_state.messages_pestel = []
         st.rerun()
@@ -275,14 +279,6 @@ pergunta = st.text_area(
     height=80,
     key="pergunta_pestel"
 )
-
-col1, col2, col3 = st.columns([4, 1, 1])
-
-with col2:
-    enviar = st.button("👽 Enviar", width="stretch")
-
-with col3:
-    limpar = st.button("🗑️ Limpar Chat", width="stretch")
 
 if enviar and pergunta.strip():
     st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
