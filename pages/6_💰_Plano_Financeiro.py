@@ -49,7 +49,7 @@ else:
     })
 
 # Hash para forçar recriação
-rec_hash = hash(str(sorted([str(item) for item in fin["receitas"]]))) if fin["receitas"]
+rec_hash = hash(str(sorted([str(item) for item in fin["receitas"]]))) if fin["receitas"] else 0
 editor_key_rec = f"editor_receitas_{rec_hash}"
 
 edited_rec = st.data_editor(
