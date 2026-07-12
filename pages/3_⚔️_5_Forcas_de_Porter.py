@@ -134,6 +134,7 @@ if gerar_porter:
                             else:
                                 intensidade = 3
                             
+                            # CORREÇÃO: Atualizar apenas se estiver vazio
                             if not data["porter"][forca].get("notas", ""):
                                 data["porter"][forca]["intensidade"] = intensidade
                                 data["porter"][forca]["notas"] = notas
@@ -182,7 +183,8 @@ for forca, ajuda in AJUDA.items():
     # Botão para sugerir com IA para esta força específica
     col_btn1, col_btn2 = st.columns([1, 5])
     with col_btn1:
-        if st.button(f"🤖 Sugerir", key=f"sugerir_porter_{forca}", use_container_width=True):
+        # CORREÇÃO: Botão Sugerir com key única
+        if st.button(f"🤖 Sugerir", key=f"sugerir_{forca}", use_container_width=True):
             with st.spinner(f"Gerando análise para {forca}..."):
                 try:
                     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -195,8 +197,6 @@ for forca, ajuda in AJUDA.items():
                     
                     Força de Porter: {forca}
                     Descrição: {ajuda}
-                    Intensidade atual: {data["porter"][forca].get("intensidade", 3)}/5
-                    Observações atuais: {data["porter"][forca].get("notas", "") or "(vazio)"}
                     
                     Gere uma análise objetiva para esta força, incluindo:
                     1. Uma avaliação da intensidade (1-5) com justificativa
@@ -218,6 +218,7 @@ for forca, ajuda in AJUDA.items():
                     sugestao = response.choices[0].message.content
                     
                     try:
+                        # Tentar extrair JSON da resposta
                         json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
                         if json_match:
                             dados = json.loads(json_match.group())
@@ -233,6 +234,7 @@ for forca, ajuda in AJUDA.items():
                         else:
                             nova_intensidade = 3
                         
+                        # CORREÇÃO: Atualizar APENAS esta força
                         if novas_notas:
                             data["porter"][forca]["intensidade"] = nova_intensidade
                             data["porter"][forca]["notas"] = novas_notas
@@ -249,7 +251,7 @@ for forca, ajuda in AJUDA.items():
     
     # Botão para limpar esta força específica
     with col_btn2:
-        if st.button(f"🗑️ Limpar", key=f"limpar_porter_{forca}", use_container_width=True):
+        if st.button(f"🗑️ Limpar", key=f"limpar_{forca}", use_container_width=True):
             data["porter"][forca]["intensidade"] = 3
             data["porter"][forca]["notas"] = ""
             st.rerun()
