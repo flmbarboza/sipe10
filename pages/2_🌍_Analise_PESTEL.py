@@ -7,12 +7,6 @@ st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide"
 init_data()
 data = get_data()
 
-st.write("EDITOR:")
-st.write(edited)
-
-st.write("DATA:")
-st.write(data["pestel"][cat])
-
 st.sidebar.title("🧭 Gestor Estratégico")
 #sidebar_api_key_input()
 sidebar_data_controls()
@@ -73,6 +67,12 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             .fillna("")
             .to_dict("records")
         )
+        st.write("EDITOR:")
+        st.write(edited)
+        
+        st.write("DATA:")
+        st.write(data["pestel"][cat])
+
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
             setor = data["empresa"].get("setor") or "não informado"
