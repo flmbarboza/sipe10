@@ -137,13 +137,10 @@ paginas = [
     "12_📄_Relatório_Completo",
 ]
 
-# Usar session_state para controlar a navegação
-if "pagina_index" not in st.session_state:
-    st.session_state.pagina_index = 0
-
-# Atualizar índice baseado na página atual
+import os
+nome_arquivo = os.path.basename(__file__)
 for i, pagina in enumerate(paginas):
-    if pagina in st.page_config.get("page_title", ""):
+    if pagina in nome_arquivo:
         st.session_state.pagina_index = i
         break
 
@@ -154,7 +151,7 @@ if st.session_state.pagina_index < len(paginas) - 1:
         if st.button("➡️ Próxima Etapa", use_container_width=True):
             st.session_state.pagina_index += 1
             st.switch_page(f"pages/{proxima_pagina}.py")
-
+            
 st.divider()
 
 # ========== ASSISTENTE IA PARA AJUDA ==========
