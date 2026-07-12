@@ -51,6 +51,8 @@ def gerar_analise_ia(forca_id=None):
         if forca_id:
             forca = next(f for f in FORCAS if f["id"] == forca_id)
             prompt = f"""
+            Você é um consultor especialista em 5 Forças de Porter.
+            
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
@@ -59,17 +61,19 @@ def gerar_analise_ia(forca_id=None):
             Força de Porter: {forca['nome']}
             Descrição: {forca['ajuda']}
             
-            Gere uma análise objetiva para esta força.
+            Gere uma análise objetiva em português do Brasil para esta força.
             Responda APENAS com um JSON: {{"intensidade": 3, "notas": "análise detalhada"}}
             """
         else:
             prompt = f"""
+            Você é um consultor especialista em 5 Forças de Porter.
+            
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
             - Localização: {empresa_cidade or "Não informado"}
             
-            Analise as 5 Forças de Porter para este setor.
+            Analise as 5 Forças de Porter para este setor em português do Brasil.
             
             FORMATO DE SAÍDA: Retorne APENAS um JSON com:
             {{
@@ -84,7 +88,7 @@ def gerar_analise_ia(forca_id=None):
         response = client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=[
-                {"role": "system", "content": "Você é um consultor especialista em Porter. Responda APENAS com JSON válido."},
+                {"role": "system", "content": "Você é um consultor especialista em Porter. Responda em português do Brasil. Retorne APENAS JSON válido."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7
@@ -99,6 +103,51 @@ def gerar_analise_ia(forca_id=None):
     except Exception as e:
         st.error(f"Erro na IA: {str(e)}")
         return None
+
+def render_forca(forca):
+    """Renderiza uma força usando data_editor em tabela"""
+    
+    chave = forca["id"]
+    dados = data["porter_analise"][chave]
+    
+    # Criar DataFrame com uma única linha
+    df = pd.DataFrame([{
+        "intensidade": dados["intensidade"],
+        "notas": dados.get("notas", "")
+    }])
+    
+    df_hash = hash(str(dados)) 
+    editor_key = f"porter_editor_{chave}_{df_hash}"
+    
+    edited = st.data_editor(
+        df,
+        num_rows="fixed",
+        use_container_width=True,
+        hide_index=True,
+        key=editor_key,
+        column_config={
+            "intensidade": st.column_config.SelectboxColumn(
+                "Intensidade",
+                options=[1, 2, 3, 4, 5],
+                help="1=Muito Baixa, 5=Muito Alta"
+            ),
+            "notas": st.column_config.TextColumn(
+                "Observações",
+                width="large"
+            )
+        },
+        height=80
+    )
+    
+    # Atualizar dados se editados
+    if edited is not None and not edited.empty:
+        nova_intensidade = edited.iloc[0].get("intensidade", 3)
+        novas_notas = edited.iloc[0].get("notas", "")
+        
+        if nova_intensidade != dados["intensidade"]:
+            dados["intensidade"] = int(nova_intensidade)
+        if novas_notas != dados.get("notas", ""):
+            dados["notas"] = novas_notas
 
 st.subheader("🚀 Ações com IA")
 
@@ -129,50 +178,24 @@ for forca in FORCAS:
     st.markdown(f"### {forca['nome']}")
     st.caption(forca['ajuda'])
     
-    with st.container():
-        col1, col2, col3 = st.columns([1, 3, 1])
-        
-        with col1:
-            intensidade = st.slider(
-                "Intensidade",
-                min_value=1,
-                max_value=5,
-                value=data["porter_analise"][forca["id"]]["intensidade"],
-                key=f"slider_{forca['id']}"
-            )
-            if data["porter_analise"][forca["id"]]["intensidade"] != intensidade:
-                data["porter_analise"][forca["id"]]["intensidade"] = intensidade
-            
-            labels = {1: "Muito Baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito Alta"}
-            st.caption(f"**{labels.get(intensidade, 'Média')}**")
-        
-        with col2:
-            notas = st.text_area(
-                "Observações",
-                value=data["porter_analise"][forca["id"]]["notas"],
-                key=f"text_{forca['id']}",
-                height=100
-            )
-            if data["porter_analise"][forca["id"]]["notas"] != notas:
-                data["porter_analise"][forca["id"]]["notas"] = notas
-        
-        with col3:
-            st.write("")
-            st.write("")
-            
-            if st.button(f"🤖 IA", key=f"ia_{forca['id']}", use_container_width=True):
-                with st.spinner(f"Gerando análise para {forca['nome']}..."):
-                    resultado = gerar_analise_ia(forca["id"])
-                    if resultado:
-                        data["porter_analise"][forca["id"]]["intensidade"] = resultado.get("intensidade", 3)
-                        data["porter_analise"][forca["id"]]["notas"] = resultado.get("notas", "")
-                        st.success(f"✅ Análise atualizada para {forca['nome']}!")
-                        st.rerun()
-            
-            if st.button(f"🗑️", key=f"limpar_{forca['id']}", use_container_width=True):
-                data["porter_analise"][forca["id"]]["intensidade"] = 3
-                data["porter_analise"][forca["id"]]["notas"] = ""
-                st.rerun()
+    # Botões IA e Limpar
+    col_btn1, col_btn2, col_btn3 = st.columns([3, 1, 1])
+    with col_btn1:
+        if st.button(f"🤖 Sugerir", key=f"sugerir_porter_{forca['id']}", use_container_width=True):
+            with st.spinner(f"Gerando análise para {forca['nome']}..."):
+                resultado = gerar_analise_ia(forca["id"])
+                if resultado:
+                    data["porter_analise"][forca["id"]]["intensidade"] = resultado.get("intensidade", 3)
+                    data["porter_analise"][forca["id"]]["notas"] = resultado.get("notas", "")
+                    st.success(f"✅ Análise atualizada para {forca['nome']}!")
+                    st.rerun()
+    with col_btn2:
+        if st.button(f"🗑️ Limpar", key=f"limpar_porter_{forca['id']}", use_container_width=True):
+            data["porter_analise"][forca["id"]]["intensidade"] = 3
+            data["porter_analise"][forca["id"]]["notas"] = ""
+            st.rerun()
+    
+    render_forca(forca)
     
     st.markdown("---")
 
