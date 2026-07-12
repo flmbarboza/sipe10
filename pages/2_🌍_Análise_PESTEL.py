@@ -270,6 +270,8 @@ for msg in st.session_state.messages_pestel:
         st.markdown(msg["content"])
 
 st.divider()
+# Criar um container vazio para empurrar o botão para baixo
+st.empty()
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
