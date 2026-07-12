@@ -276,6 +276,12 @@ st.info(
     "a **SWOT Cruzada** (cruzamento de Forças/Fraquezas com Oportunidades/Ameaças)."
 )
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa", width="stretch"):
+        st.switch_page("pages/5_🧭_Planejamento_Estratégico.py")
+        
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com a Análise SWOT")
 
