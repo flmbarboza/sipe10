@@ -6,11 +6,8 @@ from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
 init_data()
 data = get_data()
-st.write("DATA MANAGER:")
-st.write(data)
-
-st.write("SESSION STATE:")
-st.write(st.session_state)
+st.write("São o mesmo objeto?")
+st.write(data is st.session_state.data)
 
 st.sidebar.title("🧭 Gestor Estratégico")
 #sidebar_api_key_input()
