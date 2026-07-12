@@ -55,7 +55,6 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
                 df[col] = default
 
         edited = st.data_editor(df, num_rows="dynamic", width="stretch", key=f"editor_pestel_{cat}",
-            on_change=salvar_pestel, args=(cat,),
             column_config={
                 "descricao": st.column_config.TextColumn("Descrição do fator", width="large"),
                 "tipo": st.column_config.SelectboxColumn("Tipo", options=TIPOS),
@@ -64,19 +63,12 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             hide_index=True,
         )
         
-        novos_itens = (
+
+        data["pestel"][cat] = (
             edited
             .fillna("")
             .to_dict("records")
         )
-        
-        st.session_state.data["pestel"][cat] = novos_itens
-        st.write("EDITOR:")
-        st.write(edited)
-        
-        st.write("DATA:")
-        st.write(data["pestel"][cat])
-
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
             setor = data["empresa"].get("setor") or "não informado"
