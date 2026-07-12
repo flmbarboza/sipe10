@@ -40,55 +40,76 @@ def system_prompt():
 with st.expander("📋 Informações para o Business Model Canvas", expanded=False):
     st.markdown("**Preencha as informações abaixo para ajudar a IA a gerar sugestões mais precisas:**")
     
+    # CORREÇÃO: Garantir que bmc_info existe
+    if "bmc_info" not in data:
+        data["bmc_info"] = {}
+    
     col_info1, col_info2 = st.columns(2)
     
     with col_info1:
         # Descrição do negócio
         descricao_negocio = st.text_area(
             "📝 Descrição do negócio",
-            value=data.get("bmc_info", {}).get("descricao", ""),
+            value=data["bmc_info"].get("descricao", ""),
             placeholder="Descreva brevemente o que sua empresa faz...",
             height=80,
-            help="Uma visão geral do seu negócio para contextualizar a IA"
+            help="Uma visão geral do seu negócio para contextualizar a IA",
+            key="bmc_descricao"  # Adicionar key única
         )
         
         # Diferenciais competitivos
         diferenciais = st.text_area(
             "⭐ Diferenciais competitivos",
-            value=data.get("bmc_info", {}).get("diferenciais", ""),
+            value=data["bmc_info"].get("diferenciais", ""),
             placeholder="Ex: Tecnologia proprietária, equipe especializada, parcerias exclusivas...",
             height=80,
-            help="O que torna sua empresa única no mercado"
+            help="O que torna sua empresa única no mercado",
+            key="bmc_diferenciais"  # Adicionar key única
         )
     
     with col_info2:
         # Público-alvo
         publico_alvo = st.text_area(
             "🎯 Público-alvo",
-            value=data.get("bmc_info", {}).get("publico_alvo", ""),
+            value=data["bmc_info"].get("publico_alvo", ""),
             placeholder="Ex: Pequenas empresas, consumidores finais, indústrias...",
             height=80,
-            help="Quem são seus clientes principais"
+            help="Quem são seus clientes principais",
+            key="bmc_publico_alvo"  # Adicionar key única
         )
         
         # Observações adicionais
         observacoes_bmc = st.text_area(
             "📝 Observações adicionais",
-            value=data.get("bmc_info", {}).get("observacoes", ""),
+            value=data["bmc_info"].get("observacoes", ""),
             placeholder="Qualquer informação adicional relevante para o modelo de negócio...",
             height=80,
-            help="Informações extras que podem ajudar a IA"
+            help="Informações extras que podem ajudar a IA",
+            key="bmc_observacoes"  # Adicionar key única
         )
     
-    # Salvar informações
-    if "bmc_info" not in data:
-        data["bmc_info"] = {}
-    data["bmc_info"]["descricao"] = descricao_negocio
-    data["bmc_info"]["diferenciais"] = diferenciais
-    data["bmc_info"]["publico_alvo"] = publico_alvo
-    data["bmc_info"]["observacoes"] = observacoes_bmc
+    # CORREÇÃO: Salvar automaticamente quando o usuário edita
+    if data["bmc_info"].get("descricao", "") != descricao_negocio:
+        data["bmc_info"]["descricao"] = descricao_negocio
+    if data["bmc_info"].get("diferenciais", "") != diferenciais:
+        data["bmc_info"]["diferenciais"] = diferenciais
+    if data["bmc_info"].get("publico_alvo", "") != publico_alvo:
+        data["bmc_info"]["publico_alvo"] = publico_alvo
+    if data["bmc_info"].get("observacoes", "") != observacoes_bmc:
+        data["bmc_info"]["observacoes"] = observacoes_bmc
 
 st.divider()
+
+# ========== OBTENDO INFORMAÇÕES DA EMPRESA ==========
+# CORREÇÃO: Garantir que as informações da empresa estão disponíveis
+empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+empresa_cidade = data.get("empresa", {}).get("cidade_estado", "")
+empresa_responsavel = data.get("empresa", {}).get("responsavel", "")
+
+# Verificar se os dados da empresa existem
+if not empresa_nome or empresa_nome == "a empresa":
+    st.info("ℹ️ Cadastre os dados da empresa na página inicial para obter sugestões mais precisas da IA.")
 
 # ========== BOTÃO PARA GERAR O BMC COMPLETO ==========
 st.subheader("🚀 Gerar Business Model Canvas com IA")
@@ -104,32 +125,36 @@ with col_gerar3:
     if limpar_bmc:
         for chave, _, _ in BLOCOS:
             data["bmc"][chave] = ""
+        # CORREÇÃO: Também limpar as informações adicionais
+        if "bmc_info" in data:
+            data["bmc_info"] = {}
         st.rerun()
 
 # Processar geração do BMC
 if gerar_bmc:
-    if not descricao_negocio and not data.get("empresa", {}).get("nome"):
+    if not descricao_negocio and not empresa_nome:
         st.warning("⚠️ Por favor, preencha pelo menos a descrição do negócio ou o nome da empresa para gerar o BMC.")
     else:
         with st.spinner("🧠 Gerando Business Model Canvas com IA..."):
             try:
                 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
                 
-                empresa = data.get("empresa", {}).get("nome", "a empresa")
-                setor = data.get("empresa", {}).get("setor", "não informado")
-                
                 prompt = f"""
                 Você é um consultor sênior de estratégia e modelagem de negócios especializado em Business Model Canvas.
                 
                 INFORMAÇÕES DA EMPRESA:
-                - Nome: {empresa}
-                - Setor: {setor}
-                - Descrição: {descricao_negocio or "Não informado"}
-                - Diferenciais: {diferenciais or "Não informado"}
+                - Nome: {empresa_nome}
+                - Setor: {empresa_setor}
+                - Cidade/Estado: {empresa_cidade or "Não informado"}
+                - Responsável: {empresa_responsavel or "Não informado"}
+                - Descrição do negócio: {descricao_negocio or "Não informado"}
+                - Diferenciais competitivos: {diferenciais or "Não informado"}
                 - Público-alvo: {publico_alvo or "Não informado"}
-                - Observações: {observacoes_bmc or "Não informado"}
+                - Observações adicionais: {observacoes_bmc or "Não informado"}
                 
                 Com base nas informações acima, preencha os 9 blocos do Business Model Canvas.
+                
+                IMPORTANTE: Use as informações da empresa fornecidas. Se alguma informação não foi fornecida, use seu conhecimento geral de negócios para sugerir conteúdo relevante.
                 
                 FORMATO DE SAÍDA (OBRIGATÓRIO): Retorne APENAS um JSON com os seguintes campos:
                 {{
@@ -218,17 +243,20 @@ for i, (chave, titulo, ajuda) in enumerate(BLOCOS):
                         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
                         
                         prompt_individual = f"""
-                        Empresa: {empresa}
-                        Setor: {setor}
-                        Descrição: {descricao_negocio or "Não informado"}
-                        Diferenciais: {diferenciais or "Não informado"}
-                        Público-alvo: {publico_alvo or "Não informado"}
+                        INFORMAÇÕES DA EMPRESA:
+                        - Nome: {empresa_nome}
+                        - Setor: {empresa_setor}
+                        - Cidade/Estado: {empresa_cidade or "Não informado"}
+                        - Descrição: {descricao_negocio or "Não informado"}
+                        - Diferenciais: {diferenciais or "Não informado"}
+                        - Público-alvo: {publico_alvo or "Não informado"}
                         
                         Bloco do BMC: {titulo}
                         Pergunta-guia: {ajuda}
                         Conteúdo atual: {data["bmc"].get(chave, "") or "(vazio)"}
                         
                         Gere um conteúdo objetivo e prático para este bloco do Business Model Canvas.
+                        Considere as informações da empresa fornecidas acima.
                         Responda em português do Brasil, com 3-5 tópicos ou bullets.
                         """
                         
@@ -290,26 +318,31 @@ if pergunta := st.chat_input("Pergunte ao assistente sobre seu Business Model Ca
             # Preparar contexto com o BMC atual
             bmc_atual = ""
             for chave, titulo, _ in BLOCOS:
-                bmc_atual += f"\n{titulo}:\n{data['bmc'].get(chave, 'Vazio')}\n"
+                conteudo = data["bmc"].get(chave, "Vazio")
+                if conteudo:
+                    bmc_atual += f"\n{titulo}:\n{conteudo}\n"
             
             mensagens = [
                 {"role": "system", "content": f"""Você é um assistente especializado em Business Model Canvas e modelagem de negócios.
 
 INFORMAÇÕES DA EMPRESA:
-- Nome: {data.get('empresa', {}).get('nome', 'a empresa')}
-- Setor: {data.get('empresa', {}).get('setor', 'não informado')}
+- Nome: {empresa_nome}
+- Setor: {empresa_setor}
+- Cidade/Estado: {empresa_cidade or 'Não informado'}
+- Responsável: {empresa_responsavel or 'Não informado'}
 - Descrição: {descricao_negocio or 'Não informado'}
 - Diferenciais: {diferenciais or 'Não informado'}
 - Público-alvo: {publico_alvo or 'Não informado'}
 
 BUSINESS MODEL CANVAS ATUAL:
-{bmc_atual}
+{bmc_atual or 'Nenhum bloco preenchido ainda'}
 
 INSTRUÇÕES:
 1. Responda em português do Brasil
 2. Seja prático e objetivo
-3. Se o usuário pedir para sugerir ou melhorar um bloco específico, forneça sugestões detalhadas
-4. Se o usuário pedir para preencher um bloco, responda com o conteúdo sugerido
+3. Use as informações da empresa para contextualizar suas respostas
+4. Se o usuário pedir para sugerir ou melhorar um bloco específico, forneça sugestões detalhadas
+5. Se o usuário pedir para preencher um bloco, responda com o conteúdo sugerido
 
 Responda de forma útil e orientada a ação."""}
             ] + st.session_state.messages_bmc[:-1]
