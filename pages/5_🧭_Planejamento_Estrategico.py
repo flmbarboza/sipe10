@@ -50,13 +50,30 @@ with tab1:
     ai_assist_widget("mvv_visao", "Visão", system_prompt(), builder_visao)
 
     st.markdown("**Valores**")
-    df_valores = pd.DataFrame(data["mvv"]["valores"], columns=["valor"]) if data["mvv"]["valores"] else pd.DataFrame(columns=["valor"])
+    
+    # CORREÇÃO: Valores com hash
+    valores_atuais = data["mvv"]["valores"]
+    df_valores = pd.DataFrame(valores_atuais, columns=["valor"]) if valores_atuais else pd.DataFrame(columns=["valor"])
+    
+    # Hash para forçar recriação
+    valores_hash = hash(str(sorted(valores_atuais))) if valores_atuais else 0
+    editor_key = f"editor_valores_{valores_hash}"
+    
     edited_valores = st.data_editor(
-        df_valores, num_rows="dynamic", use_container_width=True, hide_index=True,
+        df_valores, 
+        num_rows="dynamic", 
+        use_container_width=True, 
+        hide_index=True,
         column_config={"valor": st.column_config.TextColumn("Valor organizacional", width="large")},
-        key="editor_valores",
+        key=editor_key,
     )
-    data["mvv"]["valores"] = [v for v in edited_valores["valor"].fillna("").tolist() if v]
+    
+    # Processar valores editados
+    if edited_valores is not None:
+        novos_valores = [v for v in edited_valores["valor"].fillna("").tolist() if str(v).strip()]
+        if novos_valores != data["mvv"]["valores"]:
+            data["mvv"]["valores"] = novos_valores
+            st.rerun()
 
     def builder_valores(instrucao):
         empresa = data["empresa"].get("nome") or "a empresa"
@@ -105,16 +122,54 @@ with tab2:
         with cols_map[i]:
             st.markdown(f"#### {titulo}")
             st.caption(ajuda)
+            
+            # Garantir que a chave existe
+            if "swot_cruzada" not in data:
+                data["swot_cruzada"] = {}
+            if chave not in data["swot_cruzada"]:
+                data["swot_cruzada"][chave] = []
+            
             itens = data["swot_cruzada"].get(chave, [])
-            df = pd.DataFrame(itens) if itens else pd.DataFrame(columns=["estrategia"])
+            
+            # Garantir que todos os itens tenham a coluna estrategia
+            for item in itens:
+                if "estrategia" not in item:
+                    item["estrategia"] = ""
+            
+            # Criar DataFrame
+            if itens:
+                df = pd.DataFrame(itens)
+            else:
+                df = pd.DataFrame(columns=["estrategia"])
+            
             if "estrategia" not in df.columns:
                 df["estrategia"] = ""
+            
+            # CORREÇÃO: Hash no key
+            df_hash = hash(str(sorted([item.get("estrategia", "") for item in itens]))) if itens else 0
+            editor_key = f"editor_cruz_{chave}_{df_hash}"
+            
             edited = st.data_editor(
-                df, num_rows="dynamic", use_container_width=True, hide_index=True,
-                key=f"editor_cruz_{chave}",
+                df, 
+                num_rows="dynamic", 
+                use_container_width=True, 
+                hide_index=True,
+                key=editor_key,
                 column_config={"estrategia": st.column_config.TextColumn("Estratégia", width="large")},
             )
-            data["swot_cruzada"][chave] = edited.fillna("").to_dict("records")
+            
+            # Processar dados editados
+            if edited is not None:
+                edited = edited.fillna("")
+                novos_itens = []
+                for _, row in edited.iterrows():
+                    estrategia = row.get("estrategia", "").strip()
+                    if estrategia:
+                        novos_itens.append({"estrategia": estrategia})
+                
+                if novos_itens != data["swot_cruzada"][chave]:
+                    data["swot_cruzada"][chave] = novos_itens
+                    st.rerun()
 
             def builder(instrucao, chave=chave, titulo=titulo):
                 base = (
@@ -135,16 +190,33 @@ with tab3:
     st.caption("Defina objetivos concretos, o indicador que vai medi-los e a meta com prazo.")
 
     itens = data["objetivos"]
-    df = pd.DataFrame(itens) if itens else pd.DataFrame(
-        columns=["objetivo", "perspectiva", "kpi", "meta", "prazo"]
-    )
+    
+    # Garantir que todos os itens tenham todas as colunas
+    for item in itens:
+        for col in ["objetivo", "perspectiva", "kpi", "meta", "prazo"]:
+            if col not in item:
+                item[col] = ""
+    
+    # Criar DataFrame
+    if itens:
+        df = pd.DataFrame(itens)
+    else:
+        df = pd.DataFrame(columns=["objetivo", "perspectiva", "kpi", "meta", "prazo"])
+    
     for col in ["objetivo", "perspectiva", "kpi", "meta", "prazo"]:
         if col not in df.columns:
             df[col] = ""
-
+    
+    # CORREÇÃO: Hash no key
+    df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
+    editor_key = f"editor_objetivos_{df_hash}"
+    
     edited = st.data_editor(
-        df, num_rows="dynamic", use_container_width=True, hide_index=True,
-        key="editor_objetivos",
+        df, 
+        num_rows="dynamic", 
+        use_container_width=True, 
+        hide_index=True,
+        key=editor_key,
         column_config={
             "objetivo": st.column_config.TextColumn("Objetivo estratégico", width="large"),
             "perspectiva": st.column_config.SelectboxColumn(
@@ -155,7 +227,25 @@ with tab3:
             "prazo": st.column_config.TextColumn("Prazo"),
         },
     )
-    data["objetivos"] = edited.fillna("").to_dict("records")
+    
+    # Processar dados editados
+    if edited is not None:
+        edited = edited.fillna("")
+        novos_itens = []
+        for _, row in edited.iterrows():
+            objetivo = row.get("objetivo", "").strip()
+            if objetivo:  # Só adicionar se tiver objetivo
+                novos_itens.append({
+                    "objetivo": objetivo,
+                    "perspectiva": row.get("perspectiva", "Financeira"),
+                    "kpi": row.get("kpi", ""),
+                    "meta": row.get("meta", ""),
+                    "prazo": row.get("prazo", ""),
+                })
+        
+        if novos_itens != data["objetivos"]:
+            data["objetivos"] = novos_itens
+            st.rerun()
 
     def builder_obj(instrucao):
         empresa = data["empresa"].get("nome") or "a empresa"
