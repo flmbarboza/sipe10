@@ -30,33 +30,126 @@ with col2:
 
 st.divider()
 st.subheader("📈 Receitas mensais previstas")
-df_rec = pd.DataFrame(fin["receitas"]) if fin["receitas"] else pd.DataFrame(columns=["descricao", "valor_mensal"])
-for col, default in [("descricao", ""), ("valor_mensal", 0.0)]:
-    if col not in df_rec.columns:
-        df_rec[col] = default
+
+# CORREÇÃO: Garantir tipos corretos desde o início
+if fin["receitas"]:
+    df_rec = pd.DataFrame(fin["receitas"])
+    # Garantir colunas existentes
+    for col, default, dtype in [("descricao", "", str), ("valor_mensal", 0.0, float)]:
+        if col not in df_rec.columns:
+            df_rec[col] = default
+        else:
+            # Converter para o tipo correto
+            if dtype == str:
+                df_rec[col] = df_rec[col].astype(str)
+            elif dtype == float:
+                df_rec[col] = pd.to_numeric(df_rec[col], errors='coerce').fillna(0.0)
+else:
+    # DataFrame vazio com tipos corretos
+    df_rec = pd.DataFrame({
+        "descricao": pd.Series(dtype="string"),
+        "valor_mensal": pd.Series(dtype="float64")
+    })
+
+# Hash para forçar recriação
+rec_hash = hash(str(sorted([str(item) for item in fin["receitas"]]))) if fin["receitas"] else 0
+editor_key_rec = f"editor_receitas_{rec_hash}"
+
 edited_rec = st.data_editor(
-    df_rec, num_rows="dynamic", use_container_width=True, hide_index=True, key="editor_receitas",
+    df_rec, 
+    num_rows="dynamic", 
+    use_container_width=True, 
+    hide_index=True, 
+    key=editor_key_rec,
     column_config={
         "descricao": st.column_config.TextColumn("Fonte de receita", width="large"),
         "valor_mensal": st.column_config.NumberColumn("Valor mensal (R$)", format="R$ %.2f"),
     },
 )
-fin["receitas"] = edited_rec.fillna(0).to_dict("records")
+
+# Processar dados editados
+if edited_rec is not None:
+    edited_rec = edited_rec.fillna(0)
+    novos_receitas = []
+    for _, row in edited_rec.iterrows():
+        descricao = str(row.get("descricao", "")).strip()
+        if descricao:  # Só adicionar se tiver descrição
+            try:
+                valor = float(row.get("valor_mensal", 0))
+            except (ValueError, TypeError):
+                valor = 0.0
+            novos_receitas.append({
+                "descricao": descricao,
+                "valor_mensal": valor
+            })
+    
+    if novos_receitas != fin["receitas"]:
+        fin["receitas"] = novos_receitas
+        st.rerun()
 
 st.subheader("📉 Custos e despesas mensais")
-df_custo = pd.DataFrame(fin["custos"]) if fin["custos"] else pd.DataFrame(columns=["descricao", "tipo", "valor_mensal"])
-for col, default in [("descricao", ""), ("tipo", "Fixo"), ("valor_mensal", 0.0)]:
-    if col not in df_custo.columns:
-        df_custo[col] = default
+
+# CORREÇÃO: Garantir tipos corretos para custos
+if fin["custos"]:
+    df_custo = pd.DataFrame(fin["custos"])
+    # Garantir colunas existentes com tipos corretos
+    for col, default, dtype in [("descricao", "", str), ("tipo", "Fixo", str), ("valor_mensal", 0.0, float)]:
+        if col not in df_custo.columns:
+            df_custo[col] = default
+        else:
+            # Converter para o tipo correto
+            if dtype == str:
+                df_custo[col] = df_custo[col].astype(str)
+            elif dtype == float:
+                df_custo[col] = pd.to_numeric(df_custo[col], errors='coerce').fillna(0.0)
+else:
+    # DataFrame vazio com tipos corretos
+    df_custo = pd.DataFrame({
+        "descricao": pd.Series(dtype="string"),
+        "tipo": pd.Series(dtype="string"),
+        "valor_mensal": pd.Series(dtype="float64")
+    })
+
+# Hash para forçar recriação
+custo_hash = hash(str(sorted([str(item) for item in fin["custos"]]))) if fin["custos"] else 0
+editor_key_custo = f"editor_custos_{custo_hash}"
+
 edited_custo = st.data_editor(
-    df_custo, num_rows="dynamic", use_container_width=True, hide_index=True, key="editor_custos",
+    df_custo, 
+    num_rows="dynamic", 
+    use_container_width=True, 
+    hide_index=True, 
+    key=editor_key_custo,
     column_config={
         "descricao": st.column_config.TextColumn("Custo/despesa", width="large"),
         "tipo": st.column_config.SelectboxColumn("Tipo", options=["Fixo", "Variável"]),
         "valor_mensal": st.column_config.NumberColumn("Valor mensal (R$)", format="R$ %.2f"),
     },
 )
-fin["custos"] = edited_custo.fillna(0).to_dict("records")
+
+# Processar dados editados
+if edited_custo is not None:
+    edited_custo = edited_custo.fillna(0)
+    novos_custos = []
+    for _, row in edited_custo.iterrows():
+        descricao = str(row.get("descricao", "")).strip()
+        if descricao:  # Só adicionar se tiver descrição
+            try:
+                valor = float(row.get("valor_mensal", 0))
+            except (ValueError, TypeError):
+                valor = 0.0
+            tipo = row.get("tipo", "Fixo")
+            if tipo not in ["Fixo", "Variável"]:
+                tipo = "Fixo"
+            novos_custos.append({
+                "descricao": descricao,
+                "tipo": tipo,
+                "valor_mensal": valor
+            })
+    
+    if novos_custos != fin["custos"]:
+        fin["custos"] = novos_custos
+        st.rerun()
 
 st.divider()
 
