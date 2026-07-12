@@ -1,7 +1,8 @@
 import streamlit as st
 from openai import OpenAI
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"],
+    base_url="https://openrouter.ai/api/v1")
 
 st.title("Meu Sistema")
 
@@ -30,7 +31,7 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         st.markdown(pergunta)
 
     resposta = client.chat.completions.create(
-        model="gpt-5.5",
+        model="meta-llama/llama-3.3-70b-instruct:free",
         messages=st.session_state.messages
     )
 
@@ -40,5 +41,6 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         {"role":"assistant","content":texto}
     )
 
+    
     with st.chat_message("assistant"):
         st.markdown(texto)
