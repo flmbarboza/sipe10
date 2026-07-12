@@ -263,9 +263,6 @@ for msg in st.session_state.messages_pestel:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# ========== CAMPOS DE ENVIO ==========
-col1, col2, col3 = st.columns([4, 1, 1])
-
 pergunta = st.text_area(
     "",
     placeholder="Pergunte ao assistente sobre a análise PESTEL...",
@@ -273,12 +270,6 @@ pergunta = st.text_area(
     key="pergunta_pestel",
     label_visibility="collapsed"
 )
-with col2:
-    enviar = st.button("👽 Enviar", width="stretch")
-with col3:
-    if st.button("🗑️ Limpar Chat", width="stretch"):
-        st.session_state.messages_pestel = []
-        st.rerun()
 
 # ========== PROCESSAR PERGUNTA ==========
 if enviar and pergunta.strip():
@@ -329,6 +320,15 @@ Responda em português do Brasil, de forma prática e objetiva."""}
                 
         except Exception as e:
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
+
+# ========== CAMPOS DE ENVIO ==========
+col1, col2, col3 = st.columns([4, 1, 1])
+with col2:
+    enviar = st.button("👽 Enviar")
+with col3:
+    if st.button("🗑️ Limpar Chat"):
+        st.session_state.messages_pestel = []
+        st.rerun()
 
 st.divider()
 
