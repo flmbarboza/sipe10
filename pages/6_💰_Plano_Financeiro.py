@@ -31,25 +31,22 @@ with col2:
 st.divider()
 st.subheader("📈 Receitas mensais previstas")
 
-# CORREÇÃO: Garantir que descricao seja sempre string
+st.subheader("📈 Receitas mensais previstas")
 if fin["receitas"]:
     df_rec = pd.DataFrame(fin["receitas"])
-    # Garantir colunas existentes
     for col, default in [("descricao", ""), ("valor_mensal", 0.0)]:
         if col not in df_rec.columns:
             df_rec[col] = default
         elif col == "descricao":
-            # Forçar conversão para string
             df_rec[col] = df_rec[col].astype(str)
 else:
-    # DataFrame vazio com coluna descricao como string
     df_rec = pd.DataFrame({
         "descricao": pd.Series(dtype="object"),
         "valor_mensal": pd.Series(dtype="float64")
     })
-
+    
 # Hash para forçar recriação
-rec_hash = hash(str(sorted([str(item) for item in fin["receitas"]]))) if fin["receitas"] else None
+rec_hash = hash(str(sorted([str(item) for item in fin["receitas"]]))) if fin["receitas"] else 0
 editor_key_rec = f"editor_receitas_{rec_hash}"
 
 edited_rec = st.data_editor(
@@ -85,22 +82,17 @@ if edited_rec is not None:
         st.rerun()
 
 st.subheader("📉 Custos e despesas mensais")
-
-# CORREÇÃO: Garantir que descricao seja sempre string para custos
 if fin["custos"]:
     df_custo = pd.DataFrame(fin["custos"])
-    # Garantir colunas existentes
     for col, default in [("descricao", ""), ("tipo", "Fixo"), ("valor_mensal", 0.0)]:
         if col not in df_custo.columns:
             df_custo[col] = default
         elif col == "descricao":
-            # Forçar conversão para string
             df_custo[col] = df_custo[col].astype(str)
 else:
-    # DataFrame vazio com coluna descricao como string
     df_custo = pd.DataFrame({
         "descricao": pd.Series(dtype="object"),
-        "tipo": pd.Series(dtype="string"),
+        "tipo": pd.Series(dtype="object"),
         "valor_mensal": pd.Series(dtype="float64")
     })
 
