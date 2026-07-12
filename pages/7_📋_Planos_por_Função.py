@@ -272,6 +272,12 @@ for tab, depto in zip(tabs, DEPARTAMENTOS):
             if novos != data["departamentos"][depto]["riscos"]:
                 data["departamentos"][depto]["riscos"] = novos
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa", width="stretch"):
+        st.switch_page("pages/8_💰_Orçamento.py")
+        
 # ========== ASSISTENTE IA ==========
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com Planos Departamentais")
