@@ -46,30 +46,24 @@ st.divider()
 st.subheader("🗺️ Roteiro do planejamento")
 
 etapas = [
-    ("📋", "Business Model Canvas", "Os 9 blocos do seu modelo de negócio.", "1_📋_Business_Model_Canvas"),
-    ("🌍", "Análise PESTEL", "Fatores externos: Político, Econômico, Social, Tecnológico, Ecológico, Legal.", "2_🌍_Analise_PESTEL"),
-    ("⚔️", "5 Forças de Porter", "Intensidade competitiva do setor.", "3_⚔️_5_Forcas_de_Porter"),
-    ("🎯", "Análise SWOT", "Forças, Fraquezas, Oportunidades e Ameaças, alimentada pelas análises acima.", "4_🎯_Analise_SWOT"),
-    ("🧭", "Planejamento Estratégico", "Missão, Visão, Valores, SWOT cruzada, Objetivos e KPIs.", "5_🧭_Planejamento_Estrategico"),
-    ("✅", "Plano de Ação (5W2H)", "O que, por quê, onde, quando, quem, como e quanto custa.", "6_✅_Plano_de_Acao_5W2H"),
-    ("📋", "Planos por Função", "Planos departamentais com objetivos, ações, indicadores e riscos.", "7_📋_Planos_por_Funcao"),
-    ("💰", "Orçamento", "Consolidação financeira, fluxo de caixa e indicadores.", "8_💰_Orcamento"),
-    ("🛃", "Monitoramento", "Acompanhamento de KPIs, ações e alertas.", "9_🛃_Monitoramento"),
-    ("🔄", "Revisão Estratégica", "Revisão periódica com lições aprendidas e recomendações.", "10_🔄_Revisao_Estrategica"),
-    ("📈", "Painel de Controle", "Visão consolidada de todo o planejamento.", "11_📈_Painel_de_Controle"),
-    ("📄", "Relatório Completo", "Compilação de tudo, pronta para exportar.", "12_📄_Relatorio_Completo"),
+    "📋 Business Model Canvas",
+    "🌍 Análise PESTEL",
+    "⚔️ 5 Forças de Porter",
+    "🎯 Análise SWOT",
+    "🧭 Planejamento Estratégico",
+    "✅ Plano de Ação (5W2H)",
+    "📋 Planos por Função",
+    "💰 Orçamento",
+    "🛃 Monitoramento",
+    "🔄 Revisão Estratégica",
+    "📈 Painel de Controle",
+    "📄 Relatório Completo",
 ]
 
 cols = st.columns(2)
-for i, (icone, titulo, desc, pagina) in enumerate(etapas):
+for i, etapa in enumerate(etapas):
     with cols[i % 2]:
-        col_etapa1, col_etapa2 = st.columns([4, 1])
-        with col_etapa1:
-            st.markdown(f"**{icone} {titulo}**")
-            st.caption(desc)
-        with col_etapa2:
-            if st.button("➡️", key=f"go_{i}", help=f"Ir para {titulo}"):
-                st.switch_page(f"pages/{pagina}.py")
+        st.markdown(f"**{etapa}**")
 
 st.divider()
 
@@ -128,49 +122,63 @@ st.info(
 st.divider()
 
 # ========== BOTÃO PRÓXIMA ETAPA ==========
-# Encontrar a próxima etapa não concluída
-proxima_etapa = None
-for icone, titulo, desc, pagina in etapas:
-    if titulo == "Business Model Canvas" and not data.get("bmc") or not any(data["bmc"].values()):
-        proxima_etapa = (titulo, pagina)
+paginas = [
+    "1_📋_Business_Model_Canvas",
+    "2_🌍_Analise_PESTEL",
+    "3_⚔️_5_Forcas_de_Porter",
+    "4_🎯_Analise_SWOT",
+    "5_🧭_Planejamento_Estrategico",
+    "6_✅_Plano_de_Acao_5W2H",
+    "7_📋_Planos_por_Funcao",
+    "8_💰_Orcamento",
+    "9_🛃_Monitoramento",
+    "10_🔄_Revisao_Estrategica",
+    "11_📈_Painel_de_Controle",
+    "12_📄_Relatorio_Completo",
+]
+
+proxima_pagina = None
+for i, pagina in enumerate(paginas):
+    if i == 0 and not any(data.get("bmc", {}).values()):
+        proxima_pagina = pagina
         break
-    elif titulo == "Análise PESTEL" and not data.get("pestel") or not any([any([i.get("descricao") for i in itens]) for itens in data["pestel"].values()]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 1 and not any([any([i.get("descricao") for i in itens]) for itens in data.get("pestel", {}).values()]):
+        proxima_pagina = pagina
         break
-    elif titulo == "5 Forças de Porter" and not data.get("porter_analise") or not any([v.get("notas") for v in data["porter_analise"].values()]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 2 and not any([v.get("notas") for v in data.get("porter_analise", {}).values()]):
+        proxima_pagina = pagina
         break
-    elif titulo == "Análise SWOT" and not data.get("swot") or not any([any([i.get("descricao") for i in itens]) for itens in data["swot"].values()]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 3 and not any([any([i.get("descricao") for i in itens]) for itens in data.get("swot", {}).values()]):
+        proxima_pagina = pagina
         break
-    elif titulo == "Planejamento Estratégico" and not data.get("objetivos") or not any([o.get("objetivo") for o in data["objetivos"]]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 4 and not any([o.get("objetivo") for o in data.get("objetivos", [])]):
+        proxima_pagina = pagina
         break
-    elif titulo == "Plano de Ação (5W2H)" and not data.get("acao_5w2h") or not any([a.get("what") for a in data["acao_5w2h"]]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 5 and not any([a.get("what") for a in data.get("acao_5w2h", [])]):
+        proxima_pagina = pagina
         break
-    elif titulo == "Planos por Função" and not data.get("departamentos") or not any([any([v for v in depto.values() if v]) for depto in data["departamentos"].values()]):
-        proxima_etapa = (titulo, pagina)
+    elif i == 6 and not any([any([v for v in depto.values() if v]) for depto in data.get("departamentos", {}).values()]):
+        proxima_pagina = pagina
         break
-    elif titulo == "Orçamento" and not data.get("orcamento") or not (data["orcamento"].get("receitas") or data["orcamento"].get("investimentos")):
-        proxima_etapa = (titulo, pagina)
+    elif i == 7 and not (data.get("orcamento", {}).get("receitas") or data.get("orcamento", {}).get("investimentos")):
+        proxima_pagina = pagina
         break
-    elif titulo == "Monitoramento" and not data.get("monitoramento") or not data["monitoramento"].get("alertas"):
-        proxima_etapa = (titulo, pagina)
+    elif i == 8 and not data.get("monitoramento", {}).get("alertas"):
+        proxima_pagina = pagina
         break
-    elif titulo == "Revisão Estratégica":
-        proxima_etapa = (titulo, pagina)
+    elif i == 9:
+        proxima_pagina = pagina
         break
 
-if proxima_etapa:
-    titulo, pagina = proxima_etapa
+if proxima_pagina:
     col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
     with col_prox2:
-        if st.button(f"🚀 Próxima Etapa: {titulo}", use_container_width=True):
-            st.switch_page(f"pages/{pagina}.py")
+        if st.button("➡️ Próxima Etapa", use_container_width=True):
+            st.switch_page(f"pages/{proxima_pagina}.py")
+
+st.divider()
 
 # ========== ASSISTENTE IA PARA AJUDA ==========
-st.divider()
 st.subheader("💬 Assistente IA - Ajuda com o Planejamento")
 
 col_chat1, col_chat2 = st.columns([5, 1])
@@ -195,7 +203,6 @@ if pergunta := st.chat_input("Pergunte ao assistente sobre o planejamento estrat
     with st.spinner("🤔 Pensando..."):
         try:
             from openai import OpenAI
-            import re
             
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
             
@@ -219,7 +226,6 @@ if pergunta := st.chat_input("Pergunte ao assistente sobre o planejamento estrat
 {contexto}
 
 O SIPE possui as seguintes seções:
-0. Início - Dados da empresa
 1. Business Model Canvas
 2. Análise PESTEL
 3. 5 Forças de Porter
