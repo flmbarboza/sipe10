@@ -2,14 +2,15 @@ import pandas as pd
 import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
-from utils.state import inicializar_estado, obter_dados
-
-inicializar_estado()
-data = obter_dados()
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
 init_data()
 data = get_data()
+st.write("DATA MANAGER:")
+st.write(data)
+
+st.write("SESSION STATE:")
+st.write(st.session_state)
 
 st.sidebar.title("🧭 Gestor Estratégico")
 #sidebar_api_key_input()
