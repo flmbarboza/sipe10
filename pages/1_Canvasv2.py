@@ -21,46 +21,36 @@ st.caption(
 )
 
 # ========== DEFINIÇÃO DOS BLOCOS ==========
-# Estrutura: (chave, título, descrição, placeholder)
 BLOCOS = [
     # Lado Direito (Cliente)
     ("proposta_valor", "💎 Proposta de Valor", 
-     "Que problema você resolve? Que valor entrega ao cliente?",
-     "Ex: Produto/serviço que resolve X problema, economia de 30% em custos..."),
+     "Que problema você resolve? Que valor entrega ao cliente?"),
     
     ("segmentos_clientes", "🎯 Segmentos de Clientes", 
-     "Para quem vocês criam valor? Quem são os clientes mais importantes?",
-     "Ex: Pequenas empresas, consumidores finais, indústrias..."),
+     "Para quem vocês criam valor? Quem são os clientes mais importantes?"),
     
     ("canais", "📡 Canais", 
-     "Como a proposta de valor chega até o cliente (comunicação, venda, entrega)?",
-     "Ex: Site próprio, loja física, marketplaces, WhatsApp..."),
+     "Como a proposta de valor chega até o cliente (comunicação, venda, entrega)?"),
     
     ("relacionamento_clientes", "❤️ Relacionamento com Clientes", 
-     "Como vocês conquistam, mantêm e fazem crescer a base de clientes?",
-     "Ex: Atendimento personalizado, programas de fidelidade, suporte 24h..."),
+     "Como vocês conquistam, mantêm e fazem crescer a base de clientes?"),
     
     # Lado Esquerdo (Infraestrutura)
     ("parcerias_chave", "🤝 Parcerias-Chave", 
-     "Quem são seus principais fornecedores e parceiros? O que vocês trocam?",
-     "Ex: Fornecedores de matéria-prima, canais de distribuição, alianças estratégicas..."),
+     "Quem são seus principais fornecedores e parceiros? O que vocês trocam?"),
     
     ("atividades_chave", "⚙️ Atividades-Chave", 
-     "Quais atividades essenciais sua proposta de valor exige?",
-     "Ex: Produção, marketing, vendas, pós-venda, desenvolvimento..."),
+     "Quais atividades essenciais sua proposta de valor exige?"),
     
     ("recursos_chave", "🧱 Recursos-Chave", 
-     "Que recursos (físicos, humanos, financeiros, intelectuais) são indispensáveis?",
-     "Ex: Equipe especializada, patentes, capital, equipamentos..."),
+     "Que recursos (físicos, humanos, financeiros, intelectuais) são indispensáveis?"),
     
     # Base Financeira
     ("estrutura_custos", "💸 Estrutura de Custos", 
-     "Quais são os custos mais importantes do modelo de negócio?",
-     "Ex: Custos fixos, variáveis, marketing, pessoal, infraestrutura..."),
+     "Quais são os custos mais importantes do modelo de negócio?"),
     
     ("fontes_receita", "💰 Fontes de Receita", 
-     "Por qual valor os clientes estão dispostos a pagar, e como pagam?",
-     "Ex: Vendas, assinaturas, comissões, publicidade, licenciamento..."),
+     "Por qual valor os clientes estão dispostos a pagar, e como pagam?"),
 ]
 
 def system_prompt():
@@ -145,7 +135,7 @@ with col_gerar3:
     limpar_bmc = st.button("🗑️ Limpar BMC", use_container_width=True, help="Remove todo o conteúdo do BMC")
     
     if limpar_bmc:
-        for chave, _, _, _ in BLOCOS:
+        for chave, _, _ in BLOCOS:
             data["bmc"][chave] = []
         if "bmc_info" in data:
             data["bmc_info"] = {}
@@ -212,7 +202,7 @@ if gerar_bmc:
                         dados = json.loads(conteudo)
                     
                     blocos_atualizados = 0
-                    for chave, _, _, _ in BLOCOS:
+                    for chave, _, _ in BLOCOS:
                         if chave in dados and dados[chave]:
                             if not data["bmc"].get(chave, []):
                                 data["bmc"][chave] = dados[chave]
@@ -236,342 +226,143 @@ st.divider()
 # ========== EXIBIÇÃO DOS BLOCOS COM DATA_EDITOR ==========
 st.subheader("📝 Preencha os blocos do Business Model Canvas")
 
-# Agrupar blocos para exibição no layout do Canvas
-# Lado Esquerdo (Infraestrutura)
-col_esquerda, col_centro, col_direita = st.columns([1, 1.5, 1])
+# Função para criar um bloco com data_editor
+def render_bloco(chave, titulo, desc, altura=150):
+    """Renderiza um bloco do BMC com data_editor"""
+    
+    # Garantir que a chave existe
+    if "bmc" not in data:
+        data["bmc"] = {}
+    if chave not in data["bmc"]:
+        data["bmc"][chave] = []
+    
+    st.markdown(f"**{titulo}**")
+    st.caption(desc)
+    
+    itens = data["bmc"].get(chave, [])
+    df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
+    
+    # Hash para forçar recriação
+    df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
+    editor_key = f"bmc_editor_{chave}_{df_hash}"
+    
+    edited = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+        key=editor_key,
+        column_config={
+            "item": st.column_config.TextColumn("Item", width="large")
+        },
+        height=altura
+    )
+    
+    # Processar dados editados
+    if edited is not None:
+        edited = edited.fillna("")
+        novos_itens = []
+        for _, row in edited.iterrows():
+            item = str(row.get("item", "")).strip()
+            if item:
+                novos_itens.append(item)
+        
+        if novos_itens != data["bmc"].get(chave, []):
+            data["bmc"][chave] = novos_itens
+            st.rerun()
+    
+    # Botão para sugerir com IA
+    if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", use_container_width=True):
+        with st.spinner(f"Gerando sugestão para {titulo}..."):
+            try:
+                client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+                
+                prompt_individual = f"""
+                INFORMAÇÕES DA EMPRESA:
+                - Nome: {empresa_nome}
+                - Setor: {empresa_setor}
+                - Descrição: {descricao_negocio or "Não informado"}
+                - Diferenciais: {diferenciais or "Não informado"}
+                - Público-alvo: {publico_alvo or "Não informado"}
+                
+                Bloco do BMC: {titulo}
+                Descrição: {desc}
+                
+                Gere uma lista de 3-5 itens para este bloco.
+                Responda APENAS com um JSON no formato: {{"itens": ["item1", "item2", "item3"]}}
+                """
+                
+                response = client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[
+                        {"role": "system", "content": "Você é um consultor sênior de estratégia. Responda APENAS com JSON válido."},
+                        {"role": "user", "content": prompt_individual}
+                    ],
+                    temperature=0.7
+                )
+                
+                sugestao = response.choices[0].message.content
+                
+                try:
+                    json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
+                    if json_match:
+                        dados = json.loads(json_match.group())
+                        novos_itens = dados.get("itens", [])
+                        if novos_itens:
+                            # Mesclar com itens existentes
+                            existentes = data["bmc"].get(chave, [])
+                            existentes_what = set([str(item).lower().strip() for item in existentes])
+                            for item in novos_itens:
+                                if str(item).lower().strip() not in existentes_what:
+                                    existentes.append(item)
+                            data["bmc"][chave] = existentes
+                            st.rerun()
+                except:
+                    st.error("Erro ao processar sugestão")
+                    
+            except Exception as e:
+                st.error(f"❌ Erro: {str(e)}")
+    
+    st.markdown("---")
 
+# Layout em 3 colunas seguindo o Canvas
+col_esquerda, col_centro, col_direita = st.columns([1, 1.2, 1])
+
+# Coluna Esquerda - Infraestrutura
 with col_esquerda:
     st.markdown("### 🏗️ Infraestrutura")
     
-    for chave, titulo, desc, placeholder in BLOCOS:
+    for chave, titulo, desc in BLOCOS:
         if chave in ["parcerias_chave", "atividades_chave", "recursos_chave"]:
-            st.markdown(f"**{titulo}**")
-            st.caption(desc)
-            
-            # Garantir que a chave existe
-            if "bmc" not in data:
-                data["bmc"] = {}
-            if chave not in data["bmc"]:
-                data["bmc"][chave] = []
-            
-            # Criar DataFrame
-            itens = data["bmc"].get(chave, [])
-            df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
-            
-            # Hash para forçar recriação
-            df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
-            editor_key = f"bmc_editor_{chave}_{df_hash}"
-            
-            edited = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key=editor_key,
-                column_config={
-                    "item": st.column_config.TextColumn("Item", width="large", placeholder=placeholder)
-                },
-                height=150
-            )
-            
-            # Processar dados editados
-            if edited is not None:
-                edited = edited.fillna("")
-                novos_itens = []
-                for _, row in edited.iterrows():
-                    item = str(row.get("item", "")).strip()
-                    if item:
-                        novos_itens.append(item)
-                
-                if novos_itens != data["bmc"].get(chave, []):
-                    data["bmc"][chave] = novos_itens
-                    st.rerun()
-            
-            # Botão para sugerir com IA
-            if st.button(f"🤖 Sugerir {titulo.split(' ')[1] if len(titulo.split(' ')) > 1 else ''}", key=f"sugerir_{chave}", use_container_width=True):
-                with st.spinner(f"Gerando sugestão para {titulo}..."):
-                    try:
-                        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-                        
-                        prompt_individual = f"""
-                        INFORMAÇÕES DA EMPRESA:
-                        - Nome: {empresa_nome}
-                        - Setor: {empresa_setor}
-                        - Descrição: {descricao_negocio or "Não informado"}
-                        - Diferenciais: {diferenciais or "Não informado"}
-                        - Público-alvo: {publico_alvo or "Não informado"}
-                        
-                        Bloco do BMC: {titulo}
-                        Descrição: {desc}
-                        
-                        Gere uma lista de 3-5 itens para este bloco.
-                        Responda APENAS com um JSON no formato: {{"itens": ["item1", "item2", "item3"]}}
-                        """
-                        
-                        response = client.chat.completions.create(
-                            model="openai/gpt-oss-20b",
-                            messages=[
-                                {"role": "system", "content": "Você é um consultor sênior de estratégia. Responda APENAS com JSON válido."},
-                                {"role": "user", "content": prompt_individual}
-                            ],
-                            temperature=0.7
-                        )
-                        
-                        sugestao = response.choices[0].message.content
-                        
-                        try:
-                            json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
-                            if json_match:
-                                dados = json.loads(json_match.group())
-                                novos_itens = dados.get("itens", [])
-                                if novos_itens:
-                                    # Mesclar com itens existentes
-                                    existentes = data["bmc"].get(chave, [])
-                                    existentes_what = set([str(item).lower().strip() for item in existentes])
-                                    for item in novos_itens:
-                                        if str(item).lower().strip() not in existentes_what:
-                                            existentes.append(item)
-                                    data["bmc"][chave] = existentes
-                                    st.rerun()
-                        except:
-                            st.error("Erro ao processar sugestão")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Erro: {str(e)}")
-            
-            st.markdown("---")
+            render_bloco(chave, titulo, desc, 150)
 
+# Coluna Centro - Proposta de Valor, Canais e Relacionamento
 with col_centro:
     st.markdown("### 💎 Proposta de Valor")
     
-    for chave, titulo, desc, placeholder in BLOCOS:
+    for chave, titulo, desc in BLOCOS:
         if chave == "proposta_valor":
-            st.caption(desc)
-            
-            if "bmc" not in data:
-                data["bmc"] = {}
-            if chave not in data["bmc"]:
-                data["bmc"][chave] = []
-            
-            itens = data["bmc"].get(chave, [])
-            df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
-            
-            df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
-            editor_key = f"bmc_editor_{chave}_{df_hash}"
-            
-            edited = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key=editor_key,
-                column_config={
-                    "item": st.column_config.TextColumn("Item", width="large", placeholder=placeholder)
-                },
-                height=250
-            )
-            
-            if edited is not None:
-                edited = edited.fillna("")
-                novos_itens = []
-                for _, row in edited.iterrows():
-                    item = str(row.get("item", "")).strip()
-                    if item:
-                        novos_itens.append(item)
-                
-                if novos_itens != data["bmc"].get(chave, []):
-                    data["bmc"][chave] = novos_itens
-                    st.rerun()
-            
-            if st.button(f"🤖 Sugerir {titulo.split(' ')[1] if len(titulo.split(' ')) > 1 else ''}", key=f"sugerir_{chave}", use_container_width=True):
-                with st.spinner(f"Gerando sugestão..."):
-                    try:
-                        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-                        
-                        prompt_individual = f"""
-                        Empresa: {empresa_nome}
-                        Setor: {empresa_setor}
-                        Descrição: {descricao_negocio or "Não informado"}
-                        Diferenciais: {diferenciais or "Não informado"}
-                        Público-alvo: {publico_alvo or "Não informado"}
-                        
-                        Bloco: {titulo}
-                        Descrição: {desc}
-                        
-                        Gere 3-5 itens para a Proposta de Valor.
-                        Responda APENAS JSON: {{"itens": ["item1", "item2", "item3"]}}
-                        """
-                        
-                        response = client.chat.completions.create(
-                            model="openai/gpt-oss-20b",
-                            messages=[
-                                {"role": "system", "content": "Responda APENAS com JSON válido."},
-                                {"role": "user", "content": prompt_individual}
-                            ],
-                            temperature=0.7
-                        )
-                        
-                        sugestao = response.choices[0].message.content
-                        
-                        try:
-                            json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
-                            if json_match:
-                                dados = json.loads(json_match.group())
-                                novos_itens = dados.get("itens", [])
-                                if novos_itens:
-                                    existentes = data["bmc"].get(chave, [])
-                                    existentes_what = set([str(item).lower().strip() for item in existentes])
-                                    for item in novos_itens:
-                                        if str(item).lower().strip() not in existentes_what:
-                                            existentes.append(item)
-                                    data["bmc"][chave] = existentes
-                                    st.rerun()
-                        except:
-                            st.error("Erro ao processar sugestão")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Erro: {str(e)}")
-            
-            st.markdown("---")
+            render_bloco(chave, titulo, desc, 250)
     
     st.markdown("### 📡 Canais e Relacionamento")
     
-    for chave, titulo, desc, placeholder in BLOCOS:
+    for chave, titulo, desc in BLOCOS:
         if chave in ["canais", "relacionamento_clientes"]:
-            st.markdown(f"**{titulo}**")
-            st.caption(desc)
-            
-            if "bmc" not in data:
-                data["bmc"] = {}
-            if chave not in data["bmc"]:
-                data["bmc"][chave] = []
-            
-            itens = data["bmc"].get(chave, [])
-            df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
-            
-            df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
-            editor_key = f"bmc_editor_{chave}_{df_hash}"
-            
-            edited = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key=editor_key,
-                column_config={
-                    "item": st.column_config.TextColumn("Item", width="large", placeholder=placeholder)
-                },
-                height=120
-            )
-            
-            if edited is not None:
-                edited = edited.fillna("")
-                novos_itens = []
-                for _, row in edited.iterrows():
-                    item = str(row.get("item", "")).strip()
-                    if item:
-                        novos_itens.append(item)
-                
-                if novos_itens != data["bmc"].get(chave, []):
-                    data["bmc"][chave] = novos_itens
-                    st.rerun()
-            
-            if st.button(f"🤖 Sugerir {titulo.split(' ')[1] if len(titulo.split(' ')) > 1 else ''}", key=f"sugerir_{chave}", use_container_width=True):
-                # Similar ao anterior
-                pass
-            
-            st.markdown("---")
+            render_bloco(chave, titulo, desc, 150)
 
+# Coluna Direita - Clientes e Finanças
 with col_direita:
     st.markdown("### 👥 Clientes")
     
-    for chave, titulo, desc, placeholder in BLOCOS:
+    for chave, titulo, desc in BLOCOS:
         if chave == "segmentos_clientes":
-            st.caption(desc)
-            
-            if "bmc" not in data:
-                data["bmc"] = {}
-            if chave not in data["bmc"]:
-                data["bmc"][chave] = []
-            
-            itens = data["bmc"].get(chave, [])
-            df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
-            
-            df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
-            editor_key = f"bmc_editor_{chave}_{df_hash}"
-            
-            edited = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key=editor_key,
-                column_config={
-                    "item": st.column_config.TextColumn("Item", width="large", placeholder=placeholder)
-                },
-                height=200
-            )
-            
-            if edited is not None:
-                edited = edited.fillna("")
-                novos_itens = []
-                for _, row in edited.iterrows():
-                    item = str(row.get("item", "")).strip()
-                    if item:
-                        novos_itens.append(item)
-                
-                if novos_itens != data["bmc"].get(chave, []):
-                    data["bmc"][chave] = novos_itens
-                    st.rerun()
-            
-            if st.button(f"🤖 Sugerir {titulo.split(' ')[1] if len(titulo.split(' ')) > 1 else ''}", key=f"sugerir_{chave}", use_container_width=True):
-                pass
-            
-            st.markdown("---")
+            render_bloco(chave, titulo, desc, 200)
     
     st.markdown("### 💰 Finanças")
     
-    for chave, titulo, desc, placeholder in BLOCOS:
+    for chave, titulo, desc in BLOCOS:
         if chave in ["estrutura_custos", "fontes_receita"]:
-            st.markdown(f"**{titulo}**")
-            st.caption(desc)
-            
-            if "bmc" not in data:
-                data["bmc"] = {}
-            if chave not in data["bmc"]:
-                data["bmc"][chave] = []
-            
-            itens = data["bmc"].get(chave, [])
-            df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
-            
-            df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
-            editor_key = f"bmc_editor_{chave}_{df_hash}"
-            
-            edited = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key=editor_key,
-                column_config={
-                    "item": st.column_config.TextColumn("Item", width="large", placeholder=placeholder)
-                },
-                height=120
-            )
-            
-            if edited is not None:
-                edited = edited.fillna("")
-                novos_itens = []
-                for _, row in edited.iterrows():
-                    item = str(row.get("item", "")).strip()
-                    if item:
-                        novos_itens.append(item)
-                
-                if novos_itens != data["bmc"].get(chave, []):
-                    data["bmc"][chave] = novos_itens
-                    st.rerun()
-            
-            st.markdown("---")
+            render_bloco(chave, titulo, desc, 150)
 
 st.divider()
 
@@ -580,7 +371,7 @@ st.subheader("📊 Visualização Completa do Business Model Canvas")
 
 # Criar um DataFrame com todos os blocos
 canvas_data = {}
-for chave, titulo, desc, placeholder in BLOCOS:
+for chave, titulo, desc in BLOCOS:
     itens = data["bmc"].get(chave, [])
     canvas_data[titulo] = "\n".join([f"• {item}" for item in itens]) if itens else "_(vazio)_"
 
@@ -601,7 +392,7 @@ col_export1, col_export2 = st.columns(2)
 with col_export1:
     if st.button("📋 Copiar Canvas (Texto)", use_container_width=True):
         texto = "BUSINESS MODEL CANVAS\n" + "="*50 + "\n\n"
-        for chave, titulo, desc, placeholder in BLOCOS:
+        for chave, titulo, desc in BLOCOS:
             itens = data["bmc"].get(chave, [])
             texto += f"{titulo}:\n"
             if itens:
@@ -653,7 +444,7 @@ if pergunta := st.chat_input("Pergunte ao assistente sobre seu Business Model Ca
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
             
             bmc_atual = ""
-            for chave, titulo, _, _ in BLOCOS:
+            for chave, titulo, desc in BLOCOS:
                 itens = data["bmc"].get(chave, [])
                 if itens:
                     bmc_atual += f"\n{titulo}:\n"
