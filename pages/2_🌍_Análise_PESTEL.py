@@ -255,6 +255,12 @@ st.info(
 
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com a Análise PESTEL")
+if "messages_pestel" not in st.session_state:
+    st.session_state.messages_pestel = []
+
+for msg in st.session_state.messages_pestel:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 pergunta = st.text_area(
     "",
@@ -314,21 +320,12 @@ Responda em português do Brasil, de forma prática e objetiva."""}
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
 
 col1, col2, col3 = st.columns([4, 1, 1])
-
 with col2:
     enviar = st.button("👽 Enviar", width="stretch")
-
 with col3:
     if st.button("🗑️ Limpar Chat", width="stretch"):
         st.session_state.messages_pestel = []
         st.rerun()
-
-if "messages_pestel" not in st.session_state:
-    st.session_state.messages_pestel = []
-
-for msg in st.session_state.messages_pestel:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
 
 st.divider()
 
