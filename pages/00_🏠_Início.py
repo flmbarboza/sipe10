@@ -124,17 +124,17 @@ st.divider()
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 paginas = [
     "1_📋_Business_Model_Canvas",
-    "2_🌍_Analise_PESTEL",
-    "3_⚔️_5_Forcas_de_Porter",
-    "4_🎯_Analise_SWOT",
-    "5_🧭_Planejamento_Estrategico",
-    "6_✅_Plano_de_Acao_5W2H",
-    "7_📋_Planos_por_Funcao",
-    "8_💰_Orcamento",
+    "2_🌍_Análise_PESTEL",
+    "3_⚔️_5_Forças_de_Porter",
+    "4_🎯_Análise_SWOT",
+    "5_🧭_Planejamento_Estratégico",
+    "6_✅_Plano_de_Ação_5W2H",
+    "7_📋_Planos_por_Função",
+    "8_💰_Orçamento",
     "9_🛃_Monitoramento",
-    "10_🔄_Revisao_Estrategica",
+    "10_🔄_Revisão",
     "11_📈_Painel_de_Controle",
-    "12_📄_Relatorio_Completo",
+    "12_📄_Relatório_Completo",
 ]
 
 proxima_pagina = None
