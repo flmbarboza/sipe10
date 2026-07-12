@@ -3,7 +3,6 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
-from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 from openai import OpenAI
 
 st.set_page_config(page_title="Planejamento Estratégico", page_icon="🧭", layout="wide")
@@ -27,29 +26,130 @@ tab1, tab2, tab3 = st.tabs(["🌟 Missão, Visão e Valores", "🔀 SWOT Cruzada
 with tab1:
     st.subheader("Missão, Visão e Valores")
 
+    def gerar_missao_ia():
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+            
+            prompt = f"""
+            Empresa: {empresa_nome}
+            Setor: {empresa_setor}
+            
+            Gere uma missão objetiva em 1-2 frases em português do Brasil.
+            Responda APENAS com um JSON: {{"missao": "texto da missão"}}
+            """
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": "Você é um consultor de estratégia. Responda APENAS com JSON válido."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+            
+            conteudo = response.choices[0].message.content
+            json_match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(conteudo)
+        except Exception as e:
+            st.error(f"Erro na IA: {str(e)}")
+            return None
+
+    def gerar_visao_ia():
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+            
+            prompt = f"""
+            Empresa: {empresa_nome}
+            Setor: {empresa_setor}
+            
+            Gere uma visão inspiradora e mensurável no tempo em 1-2 frases em português do Brasil.
+            Responda APENAS com um JSON: {{"visao": "texto da visão"}}
+            """
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": "Você é um consultor de estratégia. Responda APENAS com JSON válido."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+            
+            conteudo = response.choices[0].message.content
+            json_match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(conteudo)
+        except Exception as e:
+            st.error(f"Erro na IA: {str(e)}")
+            return None
+
+    def gerar_valores_ia():
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+            
+            prompt = f"""
+            Empresa: {empresa_nome}
+            
+            Gere 4 a 6 valores organizacionais em português do Brasil, cada um com uma frase curta explicando.
+            Responda APENAS com um JSON: {{"valores": ["valor1", "valor2", "valor3", "valor4"]}}
+            """
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": "Você é um consultor de estratégia. Responda APENAS com JSON válido."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+            
+            conteudo = response.choices[0].message.content
+            json_match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(conteudo)
+        except Exception as e:
+            st.error(f"Erro na IA: {str(e)}")
+            return None
+
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    with col_btn1:
+        if st.button("🤖 Sugerir Missão", use_container_width=True):
+            with st.spinner("Gerando missão..."):
+                resultado = gerar_missao_ia()
+                if resultado and "missao" in resultado:
+                    data["mvv"]["missao"] = resultado["missao"]
+                    st.rerun()
+    with col_btn2:
+        if st.button("🤖 Sugerir Visão", use_container_width=True):
+            with st.spinner("Gerando visão..."):
+                resultado = gerar_visao_ia()
+                if resultado and "visao" in resultado:
+                    data["mvv"]["visao"] = resultado["visao"]
+                    st.rerun()
+    with col_btn3:
+        if st.button("🤖 Sugerir Valores", use_container_width=True):
+            with st.spinner("Gerando valores..."):
+                resultado = gerar_valores_ia()
+                if resultado and "valores" in resultado:
+                    data["mvv"]["valores"] = resultado["valores"]
+                    st.rerun()
+
+    st.divider()
+
     missao = st.text_area("Missão — por que a empresa existe hoje?", value=data["mvv"]["missao"], height=100)
     data["mvv"]["missao"] = missao
 
-    def builder_missao(instrucao):
-        empresa = data["empresa"].get("nome") or "a empresa"
-        setor = data["empresa"].get("setor") or "não informado"
-        base = f"Empresa: {empresa}. Setor: {setor}. Missão atual: '{missao or '(vazio)'}'.\n"
-        base += instrucao if instrucao else "Sugira uma missão objetiva, em 1-2 frases.\n"
-        return base
-
-    ai_assist_widget("mvv_missao", "Missão", system_prompt(), builder_missao)
-
     visao = st.text_area("Visão — onde a empresa quer chegar (médio/longo prazo)?", value=data["mvv"]["visao"], height=100)
     data["mvv"]["visao"] = visao
-
-    def builder_visao(instrucao):
-        empresa = data["empresa"].get("nome") or "a empresa"
-        setor = data["empresa"].get("setor") or "não informado"
-        base = f"Empresa: {empresa}. Setor: {setor}. Visão atual: '{visao or '(vazio)'}'.\n"
-        base += instrucao if instrucao else "Sugira uma visão inspiradora e mensurável no tempo, em 1-2 frases.\n"
-        return base
-
-    ai_assist_widget("mvv_visao", "Visão", system_prompt(), builder_visao)
 
     st.markdown("**Valores**")
     
@@ -73,15 +173,6 @@ with tab1:
         if novos_valores != data["mvv"]["valores"]:
             data["mvv"]["valores"] = novos_valores
             st.rerun()
-
-    def builder_valores(instrucao):
-        empresa = data["empresa"].get("nome") or "a empresa"
-        atuais = ", ".join(data["mvv"]["valores"]) or "(nenhum ainda)"
-        base = f"Empresa: {empresa}. Valores já definidos: {atuais}.\n"
-        base += instrucao if instrucao else "Sugira de 4 a 6 valores organizacionais, cada um com uma frase curta explicando.\n"
-        return base
-
-    ai_assist_widget("mvv_valores", "Valores", system_prompt(), builder_valores)
 
 # ---------------- SWOT Cruzada ----------------
 with tab2:
@@ -450,24 +541,6 @@ with tab3:
         if novos_itens != data["objetivos"]:
             data["objetivos"] = novos_itens
             st.rerun()
-
-    def builder_obj(instrucao):
-        empresa = data["empresa"].get("nome") or "a empresa"
-        setor = data["empresa"].get("setor") or "não informado"
-        estrategias_cruzadas = []
-        for q in ["SO", "ST", "WO", "WT"]:
-            estrategias_cruzadas += [i.get("estrategia", "") for i in data["swot_cruzada"].get(q, []) if i.get("estrategia")]
-        base = (
-            f"Empresa: {empresa}. Setor: {setor}.\n"
-            f"Estratégias da SWOT cruzada já definidas: {'; '.join(estrategias_cruzadas) or '(nenhuma ainda)'}\n"
-        )
-        base += instrucao if instrucao else (
-            "Sugira de 3 a 5 objetivos estratégicos SMART, cada um com uma sugestão de KPI e meta com prazo, "
-            "no formato: Objetivo | Perspectiva (BSC) | KPI | Meta | Prazo.\n"
-        )
-        return base
-
-    ai_assist_widget("objetivos_geral", "Objetivos, KPIs e Metas", system_prompt(), builder_obj)
 
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com o Planejamento Estratégico")
