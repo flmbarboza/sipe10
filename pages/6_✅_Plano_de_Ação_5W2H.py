@@ -438,3 +438,9 @@ Responda em português do Brasil, de forma prática e orientada a execução."""
         except Exception as e:
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
             st.session_state.processando_mensagem = False
+
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa", width="stretch"):
+        st.switch_page("pages/7_📋_Planos_por_Função.py")
