@@ -31,7 +31,7 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         st.markdown(pergunta)
 
     resposta = client.chat.completions.create(
-        model="openrouter/fusion",
+        model="openai/gpt-oss-120b",
         messages=st.session_state.messages
     )
 
