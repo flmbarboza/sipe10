@@ -137,45 +137,20 @@ paginas = [
     "12_📄_Relatório_Completo",
 ]
 
-proxima_pagina = None
+# Encontrar a página atual
+pagina_atual = "00_🏠_Início"
 for i, pagina in enumerate(paginas):
-    if i == 0 and not any(data.get("bmc", {}).values()):
-        proxima_pagina = pagina
+    if pagina_atual in st.session_state.get("pagina_atual", ""):
+        proxima_pagina = paginas[i + 1] if i + 1 < len(paginas) else None
         break
-    elif i == 1 and not any([any([i.get("descricao") for i in itens]) for itens in data.get("pestel", {}).values()]):
-        proxima_pagina = pagina
-        break
-    elif i == 2 and not any([v.get("notas") for v in data.get("porter_analise", {}).values()]):
-        proxima_pagina = pagina
-        break
-    elif i == 3 and not any([any([i.get("descricao") for i in itens]) for itens in data.get("swot", {}).values()]):
-        proxima_pagina = pagina
-        break
-    elif i == 4 and not any([o.get("objetivo") for o in data.get("objetivos", [])]):
-        proxima_pagina = pagina
-        break
-    elif i == 5 and not any([a.get("what") for a in data.get("acao_5w2h", [])]):
-        proxima_pagina = pagina
-        break
-    elif i == 6 and not any([any([v for v in depto.values() if v]) for depto in data.get("departamentos", {}).values()]):
-        proxima_pagina = pagina
-        break
-    elif i == 7 and not (data.get("orcamento", {}).get("receitas") or data.get("orcamento", {}).get("investimentos")):
-        proxima_pagina = pagina
-        break
-    elif i == 8 and not data.get("monitoramento", {}).get("alertas"):
-        proxima_pagina = pagina
-        break
-    elif i == 9:
-        proxima_pagina = pagina
-        break
+else:
+    proxima_pagina = paginas[0]  # Se não encontrar, vai para a primeira
 
 if proxima_pagina:
     col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
     with col_prox2:
         if st.button("➡️ Próxima Etapa", use_container_width=True):
             st.switch_page(f"pages/{proxima_pagina}.py")
-
 st.divider()
 
 # ========== ASSISTENTE IA PARA AJUDA ==========
