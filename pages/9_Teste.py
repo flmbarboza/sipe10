@@ -31,7 +31,7 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         st.markdown(pergunta)
 
     resposta = client.chat.completions.create(
-        model="openrouter/free",
+        model="google/gemma-3-27b-it:free",
         messages=st.session_state.messages
     )
 
