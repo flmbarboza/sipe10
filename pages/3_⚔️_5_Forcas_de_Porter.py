@@ -167,9 +167,10 @@ for forca, ajuda in AJUDA.items():
             value=int(data["porter"][forca].get("intensidade", 3)),
             key=f"porter_int_{forca}",
         )
-        data["porter"][forca]["intensidade"] = intensidade
+        # CORREÇÃO: Atualizar apenas se mudou manualmente
+        if data["porter"][forca].get("intensidade", 3) != intensidade:
+            data["porter"][forca]["intensidade"] = intensidade
         
-        # Mostrar label da intensidade
         labels = {1: "Muito Baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito Alta"}
         st.caption(f"**{labels.get(intensidade, 'Média')}**")
     
@@ -178,12 +179,13 @@ for forca, ajuda in AJUDA.items():
             "Observações", value=data["porter"][forca].get("notas", ""),
             key=f"porter_notas_{forca}", height=100,
         )
-        data["porter"][forca]["notas"] = notas
+        # CORREÇÃO: Atualizar apenas se mudou manualmente
+        if data["porter"][forca].get("notas", "") != notas:
+            data["porter"][forca]["notas"] = notas
     
     # Botão para sugerir com IA para esta força específica
     col_btn1, col_btn2 = st.columns([1, 5])
     with col_btn1:
-        # CORREÇÃO: Botão Sugerir com key única
         if st.button(f"🤖 Sugerir", key=f"sugerir_{forca}", use_container_width=True):
             with st.spinner(f"Gerando análise para {forca}..."):
                 try:
@@ -218,7 +220,6 @@ for forca, ajuda in AJUDA.items():
                     sugestao = response.choices[0].message.content
                     
                     try:
-                        # Tentar extrair JSON da resposta
                         json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
                         if json_match:
                             dados = json.loads(json_match.group())
@@ -228,16 +229,16 @@ for forca, ajuda in AJUDA.items():
                         nova_intensidade = dados.get("intensidade", 3)
                         novas_notas = dados.get("notas", "")
                         
-                        # Validar intensidade
                         if isinstance(nova_intensidade, (int, float)):
                             nova_intensidade = max(1, min(5, int(nova_intensidade)))
                         else:
                             nova_intensidade = 3
                         
-                        # CORREÇÃO: Atualizar APENAS esta força
                         if novas_notas:
+                            # CORREÇÃO: Atualizar diretamente no data
                             data["porter"][forca]["intensidade"] = nova_intensidade
                             data["porter"][forca]["notas"] = novas_notas
+                            
                             st.success(f"✅ Análise atualizada para {forca}!")
                             st.rerun()
                         else:
