@@ -121,39 +121,6 @@ st.info(
 
 st.divider()
 
-# ========== BOTÃO PRÓXIMA ETAPA ==========
-paginas = [
-    "1_📋_Business_Model_Canvas",
-    "2_🌍_Análise_PESTEL",
-    "3_⚔️_5_Forças_de_Porter",
-    "4_🎯_Análise_SWOT",
-    "5_🧭_Planejamento_Estratégico",
-    "6_✅_Plano_de_Ação_5W2H",
-    "7_📋_Planos_por_Função",
-    "8_💰_Orçamento",
-    "9_🛃_Monitoramento",
-    "10_🔄_Revisão",
-    "11_📈_Painel_de_Controle",
-    "12_📄_Relatório_Completo",
-]
-
-import os
-nome_arquivo = os.path.basename(__file__)
-for i, pagina in enumerate(paginas):
-    if pagina in nome_arquivo:
-        st.session_state.pagina_index = i
-        break
-
-if st.session_state.pagina_index < len(paginas) - 1:
-    proxima_pagina = paginas[st.session_state.pagina_index + 1]
-    col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
-    with col_prox2:
-        if st.button("➡️ Próxima Etapa", use_container_width=True):
-            st.session_state.pagina_index += 1
-            st.switch_page(f"pages/{proxima_pagina}.py")
-            
-st.divider()
-
 # ========== ASSISTENTE IA PARA AJUDA ==========
 st.subheader("💬 Assistente IA - Ajuda com o Planejamento")
 
@@ -232,3 +199,11 @@ Responda em português do Brasil, de forma prática e objetiva."""}
                 
         except Exception as e:
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
+
+st.divider()
+
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa", width="stretch"):
+        st.switch_page("pages/1_📋_Business_Model_Canvas.py")
