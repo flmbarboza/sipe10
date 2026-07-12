@@ -185,7 +185,7 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
 
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
-            if st.button(f"🤖 Sugerir para {cat}", key=f"sugerir_pestel_{cat}", use_container_width=True):
+            if st.button(f"🤖 Sugerir para {cat}", key=f"sugerir_pestel_{cat}", width="stretch"):
                 with st.spinner(f"Gerando análise para {cat}..."):
                     resultado = gerar_pestel_ia(cat)
                     if resultado and "itens" in resultado:
@@ -207,7 +207,7 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
                         else:
                             st.info(f"ℹ️ Todos os itens sugeridos já existem em {cat}.")
         with col_btn2:
-            if st.button(f"🗑️", key=f"limpar_pestel_{cat}", use_container_width=True):
+            if st.button(f"🗑️", key=f"limpar_pestel_{cat}", width="stretch"):
                 data["pestel"][cat] = []
                 st.rerun()
 
@@ -218,7 +218,7 @@ col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
 with col_gerar1:
     st.caption("A IA vai gerar análise para todas as categorias PESTEL")
 with col_gerar2:
-    if st.button("🔄 Gerar PESTEL Completo", use_container_width=True):
+    if st.button("🔄 Gerar PESTEL Completo", width="stretch"):
         with st.spinner("Gerando análise PESTEL completa..."):
             resultado = gerar_pestel_ia()
             if resultado:
@@ -242,7 +242,7 @@ with col_gerar2:
                 else:
                     st.info("ℹ️ Todos os itens sugeridos já existem.")
 with col_gerar3:
-    if st.button("🗑️ Limpar PESTEL", use_container_width=True):
+    if st.button("🗑️ Limpar PESTEL", width="stretch"):
         for cat in CATEGORIAS.keys():
             data["pestel"][cat] = []
         st.rerun()
@@ -258,7 +258,7 @@ st.subheader("💬 Assistente IA - Ajuda com a Análise PESTEL")
 
 col_chat1, col_chat2 = st.columns([5, 1])
 with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
+    if st.button("🗑️ Limpar Chat", width="stretch"):
         st.session_state.messages_pestel = []
         st.rerun()
 
@@ -281,7 +281,7 @@ pergunta = st.text_area(
 col1, col2 = st.columns([5,1])
 
 with col2:
-    enviar = st.button("🤖", width="stretch")
+    enviar = st.button("🤖 Enviar", width="stretch")
 
 if enviar and pergunta.strip():
     st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
