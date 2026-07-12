@@ -74,19 +74,52 @@ def gerar_analise_swot(quadrante=None):
         empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
         empresa_setor = data.get("empresa", {}).get("setor", "não informado")
         
+        # Coletar dados do PESTEL e Porter para contexto
+        pestel_oportunidades = []
+        pestel_ameacas = []
+        if "pestel" in data:
+            for cat, itens in data["pestel"].items():
+                for item in itens:
+                    if item.get("descricao"):
+                        if item.get("tipo") == "Oportunidade":
+                            pestel_oportunidades.append(f"[{cat}] {item['descricao']}")
+                        elif item.get("tipo") == "Ameaça":
+                            pestel_ameacas.append(f"[{cat}] {item['descricao']}")
+        
+        porter_alertas = []
+        if "porter_analise" in data:
+            for forca in data["porter_analise"].values():
+                if forca.get("intensidade", 0) >= 4:
+                    porter_alertas.append(f"{forca.get('nome', 'Força')} - {forca.get('notas', '')}")
+        
+        contexto_adicional = ""
+        if pestel_oportunidades:
+            contexto_adicional += f"\nOPORTUNIDADES IDENTIFICADAS NO PESTEL:\n" + "\n".join([f"- {item}" for item in pestel_oportunidades[:5]])
+        if pestel_ameacas:
+            contexto_adicional += f"\nAMEAÇAS IDENTIFICADAS NO PESTEL:\n" + "\n".join([f"- {item}" for item in pestel_ameacas[:5]])
+        if porter_alertas:
+            contexto_adicional += f"\nALERTAS DAS 5 FORÇAS DE PORTER:\n" + "\n".join([f"- {item}" for item in porter_alertas[:5]])
+        
         if quadrante:
             chave, titulo, ajuda = next(q for q in QUADRANTES if q[0] == quadrante)
+            
+            # Se for oportunidades ou ameaças, incluir dados do PESTEL/Porter
+            if chave in ["oportunidades", "ameacas"]:
+                contexto_adicional = f"\nDADOS JÁ IDENTIFICADOS EM ANÁLISES ANTERIORES:{contexto_adicional}\n"
+            
             prompt = f"""
             Você é um consultor de estratégia especialista em análise SWOT.
             
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
+            {contexto_adicional}
             
             Quadrante SWOT: {titulo}
             Descrição: {ajuda}
             
             Gere uma lista de 3 a 5 itens em português do Brasil para este quadrante.
+            {'Considere os dados de análises anteriores fornecidos acima.' if contexto_adicional else ''}
             Responda APENAS com um JSON: {{"itens": ["item1", "item2", "item3"]}}
             """
         else:
@@ -96,8 +129,10 @@ def gerar_analise_swot(quadrante=None):
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
+            {contexto_adicional}
             
             Gere uma análise SWOT completa com os 4 quadrantes em português do Brasil.
+            {'Considere os dados de análises anteriores fornecidos acima para oportunidades e ameaças.' if contexto_adicional else ''}
             
             FORMATO DE SAÍDA: Retorne APENAS um JSON com:
             {{
@@ -137,6 +172,7 @@ with col_gerar2:
         with st.spinner("Gerando análise SWOT completa..."):
             resultado = gerar_analise_swot()
             if resultado:
+                total_adicionados = 0
                 for chave, _, _ in QUADRANTES:
                     if chave in resultado and resultado[chave]:
                         itens_existentes = data["swot"].get(chave, [])
@@ -144,9 +180,13 @@ with col_gerar2:
                         for item in resultado[chave]:
                             if item and item.lower().strip() not in existentes_desc:
                                 itens_existentes.append({"descricao": item})
+                                total_adicionados += 1
                         data["swot"][chave] = itens_existentes
-                st.success("✅ SWOT completa gerada!")
-                st.rerun()
+                if total_adicionados > 0:
+                    st.success(f"✅ {total_adicionados} itens adicionados à SWOT!")
+                    st.rerun()
+                else:
+                    st.info("ℹ️ Todos os itens sugeridos já existem.")
 with col_gerar3:
     if st.button("🗑️ Limpar SWOT", use_container_width=True):
         for chave, _, _ in QUADRANTES:
@@ -205,15 +245,15 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
         
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
-            if st.button(f"🤖 Sugerir {titulo.split(' ')[0]}", key=f"sugerir_{chave}", use_container_width=True):
+            if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", use_container_width=True):
                 with st.spinner(f"Gerando sugestões para {titulo}..."):
                     resultado = gerar_analise_swot(chave)
-                    if resultado and "itens" in resultado:
+                    if resultado and "itens" in resultado and isinstance(resultado["itens"], list):
                         itens_existentes = data["swot"].get(chave, [])
                         existentes_desc = {item["descricao"].lower().strip() for item in itens_existentes}
                         adicionados = 0
                         for item in resultado["itens"]:
-                            if item and item.lower().strip() not in existentes_desc:
+                            if item and isinstance(item, str) and item.lower().strip() not in existentes_desc:
                                 itens_existentes.append({"descricao": item})
                                 adicionados += 1
                         if adicionados > 0:
@@ -222,6 +262,8 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
                             st.rerun()
                         else:
                             st.info(f"ℹ️ Todos os itens sugeridos já existem em {titulo}.")
+                    else:
+                        st.warning("A IA não retornou itens válidos. Tente novamente.")
         
         with col_btn2:
             if st.button(f"🗑️", key=f"limpar_{chave}", use_container_width=True):
