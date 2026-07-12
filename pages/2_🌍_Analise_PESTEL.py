@@ -67,11 +67,11 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             .fillna("")
             .to_dict("records")
         )
-        st.write("EDITOR:")
-        st.write(edited)
+        #st.write("EDITOR:")
+        #st.write(edited)
         
-        st.write("DATA:")
-        st.write(data["pestel"][cat])
+        #st.write("DATA:")
+        #st.write(data["pestel"][cat])
 
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
