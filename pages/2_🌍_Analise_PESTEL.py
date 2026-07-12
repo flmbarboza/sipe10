@@ -66,7 +66,11 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             },
             hide_index=True,
         )
-        data["pestel"][cat] = edited.fillna("").to_dict("records")
+        st.session_state.data["pestel"][cat] = (
+            edited
+            .fillna("")
+            .to_dict("records")
+        )
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
             setor = data["empresa"].get("setor") or "não informado"
