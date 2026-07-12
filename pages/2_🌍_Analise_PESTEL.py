@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from utils.data_manager import init_data, get_data, sidebar_data_controls, salvar_pestel
+from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
@@ -64,14 +64,17 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
         )
         
 
-        data["pestel"][cat] = (
+        novos_itens = (
             edited
             .fillna("")
             .to_dict("records")
         )
+        
+        if data["pestel"].get(cat, []) != novos_itens:
+            data["pestel"][cat] = novos_itens
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
-            setor = data["empresa"].get("setor") or "não informado"
+            setor = data.get("empresa", {}).get("setor") or "não informado"
             itens_atuais = data["pestel"].get(cat, [])
             resumo = "; ".join([i.get("descricao", "") for i in itens_atuais if i.get("descricao")])
             base = (
