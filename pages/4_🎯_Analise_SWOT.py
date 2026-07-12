@@ -21,19 +21,21 @@ st.caption(
 
 def itens_pestel_por_tipo(tipo):
     resultado = []
-    for cat, itens in data["pestel"].items():
-        for item in itens:
-            if item.get("tipo") == tipo and item.get("descricao"):
-                resultado.append(f"[PESTEL-{cat}] {item['descricao']}")
+    if "pestel" in data:
+        for cat, itens in data["pestel"].items():
+            for item in itens:
+                if item.get("tipo") == tipo and item.get("descricao"):
+                    resultado.append(f"[PESTEL-{cat}] {item['descricao']}")
     return resultado
 
 
 def itens_porter_alerta():
     alertas = []
-    for forca, info in data["porter"].items():
-        if info.get("intensidade", 0) >= 4:
-            nota = f" — {info['notas']}" if info.get("notas") else ""
-            alertas.append(f"[Porter] {forca} está com intensidade alta{nota}")
+    if "porter" in data:
+        for forca, info in data["porter"].items():
+            if info.get("intensidade", 0) >= 4:
+                nota = f" — {info['notas']}" if info.get("notas") else ""
+                alertas.append(f"[Porter] {forca} está com intensidade alta{nota}")
     return alertas
 
 
@@ -81,20 +83,62 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
     with cols_map[i]:
         st.markdown(f"#### {titulo}")
         st.caption(ajuda)
+        
+        # Garantir que a chave existe
+        if "swot" not in data:
+            data["swot"] = {}
+        if chave not in data["swot"]:
+            data["swot"][chave] = []
+        
+        # Buscar itens atuais
         itens = data["swot"].get(chave, [])
-        df = pd.DataFrame(itens) if itens else pd.DataFrame(columns=["descricao"])
-        if "descricao" not in df.columns:
-            df["descricao"] = ""
+        
+        # Garantir que todos os itens tenham descrição
+        for item in itens:
+            if "descricao" not in item:
+                item["descricao"] = ""
+        
+        # Criar DataFrame com estrutura correta
+        if itens:
+            df = pd.DataFrame(itens)
+        else:
+            df = pd.DataFrame(columns=["descricao"])
+        
+        # CORREÇÃO: Usar hash no key para forçar recriação
+        df_hash = hash(str(sorted([item.get("descricao", "") for item in itens]))) if itens else 0
+        editor_key = f"editor_swot_{chave}_{df_hash}"
+        
+        # Data editor com key dinâmica
         edited = st.data_editor(
-            df, num_rows="dynamic", width="stretch",
-            key=f"editor_swot_{chave}", hide_index=True,
+            df, 
+            num_rows="dynamic", 
+            width="stretch",
+            key=editor_key, 
+            hide_index=True,
             column_config={"descricao": st.column_config.TextColumn("Item", width="large")},
         )
-        data["swot"][chave] = edited.fillna("").to_dict("records")
+        
+        # Processar dados editados
+        if edited is not None:
+            # Substituir NaN por string vazia
+            edited = edited.fillna("")
+            
+            # Converter para lista de dicionários, filtrando itens vazios
+            novos_itens = []
+            for _, row in edited.iterrows():
+                descricao = row.get("descricao", "").strip()
+                if descricao:  # Só adicionar se tiver descrição
+                    novos_itens.append({"descricao": descricao})
+            
+            # Atualizar apenas se houve mudança
+            if novos_itens != data["swot"][chave]:
+                data["swot"][chave] = novos_itens
+                # Forçar rerun para atualizar o editor
+                st.rerun()
 
         def builder(instrucao, chave=chave, titulo=titulo, ajuda=ajuda):
-            empresa = data["empresa"].get("nome") or "a empresa"
-            setor = data["empresa"].get("setor") or "não informado"
+            empresa = data.get("empresa", {}).get("nome") or "a empresa"
+            setor = data.get("empresa", {}).get("setor") or "não informado"
             atuais = "; ".join([i.get("descricao", "") for i in data["swot"].get(chave, []) if i.get("descricao")])
             base = (
                 f"Empresa: {empresa}. Setor: {setor}.\n"
