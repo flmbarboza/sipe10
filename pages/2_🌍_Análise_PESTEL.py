@@ -265,14 +265,14 @@ for msg in st.session_state.messages_pestel:
 
 # ========== CAMPOS DE ENVIO ==========
 col1, col2, col3 = st.columns([4, 1, 1])
-with col1:
-    pergunta = st.text_area(
-        "",
-        placeholder="Pergunte ao assistente sobre a análise PESTEL...",
-        height=80,
-        key="pergunta_pestel",
-        label_visibility="collapsed"
-    )
+
+pergunta = st.text_area(
+    "",
+    placeholder="Pergunte ao assistente sobre a análise PESTEL...",
+    height=80,
+    key="pergunta_pestel",
+    label_visibility="collapsed"
+)
 with col2:
     enviar = st.button("👽 Enviar", width="stretch")
 with col3:
