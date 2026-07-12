@@ -62,11 +62,14 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             },
             hide_index=True,
         )
-        data["pestel"][cat] = (
+        
+        novos_itens = (
             edited
             .fillna("")
             .to_dict("records")
         )
+        
+        st.session_state.data["pestel"][cat] = novos_itens
         #st.write("EDITOR:")
         #st.write(edited)
         
