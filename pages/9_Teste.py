@@ -31,7 +31,7 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         st.markdown(pergunta)
 
     resposta = client.chat.completions.create(
-        model="meta-llama/llama-3.3-70b-instruct:free",
+        model="deepseek/deepseek-r1-0528:free"
         messages=st.session_state.messages
     )
 
