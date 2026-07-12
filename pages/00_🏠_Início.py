@@ -13,8 +13,8 @@ data = get_data()
 
 # ---------- Barra lateral (comum a todas as páginas) ----------
 st.sidebar.title("🧭 Gestor Estratégico")
-sidebar_api_key_input()
-st.divider() if False else None
+#sidebar_api_key_input()
+#st.divider() if False else None
 sidebar_data_controls()
 
 # ---------- Conteúdo da Home ----------
