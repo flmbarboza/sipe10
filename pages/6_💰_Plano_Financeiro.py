@@ -44,7 +44,7 @@ if fin["receitas"]:
 else:
     # DataFrame vazio com coluna descricao como string
     df_rec = pd.DataFrame({
-        "descricao": pd.Series(dtype="string"),
+        "descricao": pd.Series(dtype="object"),
         "valor_mensal": pd.Series(dtype="float64")
     })
 
@@ -99,7 +99,7 @@ if fin["custos"]:
 else:
     # DataFrame vazio com coluna descricao como string
     df_custo = pd.DataFrame({
-        "descricao": pd.Series(dtype="string"),
+        "descricao": pd.Series(dtype="object"),
         "tipo": pd.Series(dtype="string"),
         "valor_mensal": pd.Series(dtype="float64")
     })
