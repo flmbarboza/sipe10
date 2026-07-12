@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 from openai import OpenAI
 
 st.set_page_config(page_title="Planejamento Estratégico", page_icon="🧭", layout="wide")
