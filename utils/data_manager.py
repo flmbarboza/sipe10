@@ -142,3 +142,13 @@ def sidebar_data_controls():
         if st.button("Confirmar reset total", type="primary"):
             reset_data()
             st.rerun()
+
+def salvar_pestel(cat):
+
+    valor = st.session_state[f"editor_pestel_{cat}"]
+
+    st.session_state.data["pestel"][cat] = (
+        valor
+        .fillna("")
+        .to_dict("records")
+    )
