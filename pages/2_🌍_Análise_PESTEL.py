@@ -276,10 +276,13 @@ pergunta = st.text_area(
     key="pergunta_pestel"
 )
 
-col1, col2 = st.columns([5,1])
+col1, col2, col3 = st.columns([4, 1, 1])
 
 with col2:
     enviar = st.button("👽 Enviar", width="stretch")
+
+with col3:
+    limpar = st.button("🗑️ Limpar Chat", width="stretch")
 
 if enviar and pergunta.strip():
     st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
