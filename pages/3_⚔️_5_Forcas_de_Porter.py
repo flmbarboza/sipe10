@@ -47,13 +47,23 @@ if "porter_analise" not in data:
             "nome": forca["nome"]
         }
 
+# ========== INICIALIZAR SESSION STATE ==========
+# CORREÇÃO: Usar session_state para controlar os valores
+for forca in FORCAS:
+    key_int = f"porter_int_{forca['id']}"
+    key_notas = f"porter_notas_{forca['id']}"
+    
+    if key_int not in st.session_state:
+        st.session_state[key_int] = data["porter_analise"][forca["id"]]["intensidade"]
+    if key_notas not in st.session_state:
+        st.session_state[key_notas] = data["porter_analise"][forca["id"]]["notas"]
+
 # ========== FUNÇÃO PARA GERAR ANÁLISE ==========
 def gerar_analise_ia(forca_id=None):
     """Gera análise com IA para uma força específica ou todas"""
     try:
         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
         
-        # Preparar prompt
         if forca_id:
             forca = next(f for f in FORCAS if f["id"] == forca_id)
             prompt = f"""
@@ -119,8 +129,14 @@ with col_gerar2:
             if resultado:
                 for forca in FORCAS:
                     if forca["id"] in resultado:
+                        # CORREÇÃO: Atualizar data e session_state
                         data["porter_analise"][forca["id"]]["intensidade"] = resultado[forca["id"]]["intensidade"]
                         data["porter_analise"][forca["id"]]["notas"] = resultado[forca["id"]]["notas"]
+                        
+                        # Atualizar session_state
+                        st.session_state[f"porter_int_{forca['id']}"] = resultado[forca["id"]]["intensidade"]
+                        st.session_state[f"porter_notas_{forca['id']}"] = resultado[forca["id"]]["notas"]
+                
                 st.success("✅ Análise completa gerada!")
                 st.rerun()
 with col_gerar3:
@@ -128,6 +144,10 @@ with col_gerar3:
         for forca in FORCAS:
             data["porter_analise"][forca["id"]]["intensidade"] = 3
             data["porter_analise"][forca["id"]]["notas"] = ""
+            
+            # Atualizar session_state
+            st.session_state[f"porter_int_{forca['id']}"] = 3
+            st.session_state[f"porter_notas_{forca['id']}"] = ""
         st.rerun()
 
 st.divider()
@@ -137,52 +157,75 @@ for forca in FORCAS:
     st.markdown(f"### {forca['nome']}")
     st.caption(forca['ajuda'])
     
-    # Criar container para cada força
+    # CORREÇÃO: Usar session_state para os valores
+    key_int = f"porter_int_{forca['id']}"
+    key_notas = f"porter_notas_{forca['id']}"
+    
     with st.container():
         col1, col2, col3 = st.columns([1, 3, 1])
         
         with col1:
+            # CORREÇÃO: Usar session_state no slider
             intensidade = st.slider(
                 "Intensidade",
                 min_value=1,
                 max_value=5,
-                value=data["porter_analise"][forca["id"]]["intensidade"],
+                value=st.session_state[key_int],
                 key=f"slider_{forca['id']}"
             )
-            # Atualizar intensidade se mudou
-            if data["porter_analise"][forca["id"]]["intensidade"] != intensidade:
+            
+            # Atualizar session_state e data
+            if st.session_state[key_int] != intensidade:
+                st.session_state[key_int] = intensidade
                 data["porter_analise"][forca["id"]]["intensidade"] = intensidade
             
             labels = {1: "Muito Baixa", 2: "Baixa", 3: "Média", 4: "Alta", 5: "Muito Alta"}
             st.caption(f"**{labels.get(intensidade, 'Média')}**")
         
         with col2:
+            # CORREÇÃO: Usar session_state no text_area
             notas = st.text_area(
                 "Observações",
-                value=data["porter_analise"][forca["id"]]["notas"],
+                value=st.session_state[key_notas],
                 key=f"text_{forca['id']}",
                 height=100
             )
-            # Atualizar notas se mudou
-            if data["porter_analise"][forca["id"]]["notas"] != notas:
+            
+            # Atualizar session_state e data
+            if st.session_state[key_notas] != notas:
+                st.session_state[key_notas] = notas
                 data["porter_analise"][forca["id"]]["notas"] = notas
         
         with col3:
             st.write("")
             st.write("")
+            
             # Botão para sugerir com IA para esta força
             if st.button(f"🤖 IA", key=f"ia_{forca['id']}", use_container_width=True):
                 with st.spinner(f"Gerando análise para {forca['nome']}..."):
                     resultado = gerar_analise_ia(forca["id"])
                     if resultado:
-                        data["porter_analise"][forca["id"]]["intensidade"] = resultado.get("intensidade", 3)
-                        data["porter_analise"][forca["id"]]["notas"] = resultado.get("notas", "")
+                        nova_intensidade = resultado.get("intensidade", 3)
+                        novas_notas = resultado.get("notas", "")
+                        
+                        # CORREÇÃO: Atualizar tudo
+                        data["porter_analise"][forca["id"]]["intensidade"] = nova_intensidade
+                        data["porter_analise"][forca["id"]]["notas"] = novas_notas
+                        
+                        st.session_state[key_int] = nova_intensidade
+                        st.session_state[key_notas] = novas_notas
+                        
                         st.success(f"✅ Análise atualizada para {forca['nome']}!")
                         st.rerun()
             
             if st.button(f"🗑️", key=f"limpar_{forca['id']}", use_container_width=True):
+                # CORREÇÃO: Limpar tudo
                 data["porter_analise"][forca["id"]]["intensidade"] = 3
                 data["porter_analise"][forca["id"]]["notas"] = ""
+                
+                st.session_state[key_int] = 3
+                st.session_state[key_notas] = ""
+                
                 st.rerun()
     
     st.markdown("---")
@@ -190,7 +233,6 @@ for forca in FORCAS:
 # ========== RESUMO VISUAL ==========
 st.subheader("📊 Resumo visual")
 
-# Criar DataFrame para o gráfico
 df_resumo = pd.DataFrame([
     {"Força": forca["nome"], "Intensidade": data["porter_analise"][forca["id"]]["intensidade"]}
     for forca in FORCAS
