@@ -53,7 +53,7 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
         edited = st.data_editor(
             df,
             num_rows="dynamic",
-            use_container_width=True,
+            width="stretch",
             key=f"editor_pestel_{cat}",
             column_config={
                 "descricao": st.column_config.TextColumn("Descrição do fator", width="large"),
