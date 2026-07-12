@@ -39,7 +39,7 @@ def itens_porter_alerta():
 
 col_import1, col_import2 = st.columns(2)
 with col_import1:
-    if st.button("⬇️ Importar Oportunidades da Análise PESTEL", use_container_width=True):
+    if st.button("⬇️ Importar Oportunidades da Análise PESTEL", width="stretch"):
         novas = itens_pestel_por_tipo("Oportunidade")
         existentes = {i["descricao"] for i in data["swot"]["oportunidades"]}
         for texto in novas:
@@ -48,7 +48,7 @@ with col_import1:
         st.success(f"{len(novas)} itens verificados/importados.")
         st.rerun()
 with col_import2:
-    if st.button("⬇️ Importar Ameaças do PESTEL + Porter", use_container_width=True):
+    if st.button("⬇️ Importar Ameaças do PESTEL + Porter", width="stretch"):
         novas = itens_pestel_por_tipo("Ameaça") + itens_porter_alerta()
         existentes = {i["descricao"] for i in data["swot"]["ameacas"]}
         for texto in novas:
@@ -86,7 +86,7 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
         if "descricao" not in df.columns:
             df["descricao"] = ""
         edited = st.data_editor(
-            df, num_rows="dynamic", use_container_width=True,
+            df, num_rows="dynamic", width="stretch",
             key=f"editor_swot_{chave}", hide_index=True,
             column_config={"descricao": st.column_config.TextColumn("Item", width="large")},
         )
