@@ -3,6 +3,8 @@ import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 from openai import OpenAI
+import json
+import re
 
 st.set_page_config(page_title="Plano de Ação 5W2H", page_icon="✅", layout="wide")
 init_data()
@@ -76,12 +78,18 @@ st.divider()
 # Verificar se há objetivos definidos
 objetivos = [o.get("objetivo", "") for o in data.get("objetivos", []) if o.get("objetivo")]
 
-col_gerar1, col_gerar2 = st.columns([3, 1])
+col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
 with col_gerar1:
     st.markdown("**🤖 Gerar Plano de Ação com IA**")
     st.caption("A IA vai analisar seus objetivos estratégicos e gerar um plano 5W2H personalizado")
 with col_gerar2:
     gerar_plano = st.button("🚀 Gerar Plano", use_container_width=True)
+with col_gerar3:
+    limpar_plano = st.button("🗑️ Limpar Plano", use_container_width=True, help="Remove todas as ações do plano")
+    
+    if limpar_plano:
+        data["acao_5w2h"] = []
+        st.rerun()
 
 # Processar geração do plano
 if gerar_plano:
@@ -90,12 +98,14 @@ if gerar_plano:
     else:
         with st.spinner("🧠 Gerando plano de ação com IA..."):
             try:
-                # Preparar o prompt para a IA
                 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
                 
-                # Buscar informações adicionais
                 empresa = data.get("empresa", {}).get("nome", "a empresa")
                 setor = data.get("empresa", {}).get("setor", "não informado")
+                
+                # Buscar ações existentes para evitar duplicatas
+                acoes_existentes = data.get("acao_5w2h", [])
+                resumo_existente = "\n".join([f"- {a.get('what', '')}" for a in acoes_existentes if a.get('what')])
                 
                 prompt = f"""
                 Você é um consultor de gestão especializado em planos de ação 5W2H.
@@ -106,6 +116,9 @@ if gerar_plano:
                 
                 OBJETIVOS ESTRATÉGICOS:
                 {chr(10).join([f"- {obj}" for obj in objetivos])}
+                
+                AÇÕES JÁ EXISTENTES NO PLANO:
+                {resumo_existente or "Nenhuma ação existente"}
                 
                 PESSOAS ENVOLVIDAS:
                 {pessoas or "Não informado"}
@@ -119,22 +132,37 @@ if gerar_plano:
                 OBSERVAÇÕES:
                 {observacoes or "Não informado"}
                 
-                Com base nas informações acima, crie um plano de ação 5W2H detalhado com as seguintes características:
-                1. Gere de 3 a 5 ações principais
-                2. Cada ação deve ter todos os campos do 5W2H preenchidos
-                3. Seja específico e prático
-                4. Considere as pessoas, recursos e restrições informadas
+                IMPORTANTE: 
+                1. Gere APENAS ações que ainda NÃO existem no plano (evite duplicatas)
+                2. Gere de 2 a 4 ações novas
+                3. Cada ação deve ter todos os campos do 5W2H preenchidos
+                4. Seja específico e prático
                 
-                Formato de saída: APENAS uma tabela com as colunas: What (o quê), Why (por quê), Where (onde), When (quando), Who (quem), How (como), How much (quanto custa), Status (Não iniciado)
+                FORMATO DE SAÍDA (OBRIGATÓRIO): Retorne APENAS um JSON com a lista de ações, onde cada ação é um objeto com os campos: what, why, where, when, who, how, how_much, status (sempre "Não iniciado").
                 
-                Status inicial: "Não iniciado" para todas as ações.
+                Exemplo de formato:
+                {{
+                    "acoes": [
+                        {{
+                            "what": "Implementar CRM",
+                            "why": "Melhorar gestão de clientes",
+                            "where": "Departamento comercial",
+                            "when": "Até 30/06/2026",
+                            "who": "João (Gerente)",
+                            "how": "Contratar sistema e treinar equipe",
+                            "how_much": "R$ 15.000",
+                            "status": "Não iniciado"
+                        }}
+                    ]
+                }}
+                
+                Responda APENAS com o JSON, sem texto adicional.
                 """
                 
-                # Chamar a IA
                 response = client.chat.completions.create(
                     model="openai/gpt-oss-20b",
                     messages=[
-                        {"role": "system", "content": "Você é um consultor de gestão especializado em planos de ação 5W2H. Responda em português do Brasil, de forma prática e orientada a execução. Sempre retorne apenas a tabela no formato solicitado."},
+                        {"role": "system", "content": "Você é um consultor de gestão especializado em planos de ação 5W2H. Responda em português do Brasil. Retorne APENAS JSON válido."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7
@@ -142,48 +170,45 @@ if gerar_plano:
                 
                 conteudo = response.choices[0].message.content
                 
-                # Tentar parsear a tabela
-                linhas = conteudo.strip().split('\n')
-                novas_acoes = []
-                
-                # Procurar pela linha de cabeçalho
-                header_idx = -1
-                for i, linha in enumerate(linhas):
-                    if 'What' in linha and 'Why' in linha and 'Where' in linha:
-                        header_idx = i
-                        break
-                
-                if header_idx >= 0:
-                    # Extrair dados das linhas
-                    for linha in linhas[header_idx+1:]:
-                        if linha.strip() and '|' in linha:
-                            partes = [p.strip() for p in linha.split('|') if p.strip()]
-                            if len(partes) >= 7:
-                                nova_acao = {
-                                    "what": partes[0] if len(partes) > 0 else "",
-                                    "why": partes[1] if len(partes) > 1 else "",
-                                    "where": partes[2] if len(partes) > 2 else "",
-                                    "when": partes[3] if len(partes) > 3 else "",
-                                    "who": partes[4] if len(partes) > 4 else "",
-                                    "how": partes[5] if len(partes) > 5 else "",
-                                    "how_much": partes[6] if len(partes) > 6 else "",
-                                    "status": "Não iniciado"
-                                }
-                                novas_acoes.append(nova_acao)
-                
-                if novas_acoes:
-                    # Mesclar com ações existentes (evitar duplicatas)
-                    existentes = data.get("acao_5w2h", [])
-                    novos = [a for a in novas_acoes if a not in existentes]
-                    
-                    if novos:
-                        data["acao_5w2h"] = existentes + novos
-                        st.success(f"✅ {len(novos)} novas ações geradas e adicionadas ao plano!")
-                        st.rerun()
+                # Tentar extrair JSON da resposta
+                try:
+                    # Tentar encontrar JSON na resposta
+                    json_match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+                    if json_match:
+                        dados = json.loads(json_match.group())
+                        novas_acoes = dados.get("acoes", [])
                     else:
-                        st.info("ℹ️ As ações geradas já existem no plano.")
-                else:
-                    st.error("❌ Não foi possível parsear a resposta da IA. Tente novamente.")
+                        # Tentar parsear diretamente
+                        dados = json.loads(conteudo)
+                        novas_acoes = dados.get("acoes", [])
+                    
+                    if novas_acoes:
+                        # Filtrar duplicatas
+                        existentes_what = {a.get("what", "").lower().strip() for a in acoes_existentes}
+                        acoes_adicionadas = []
+                        
+                        for acao in novas_acoes:
+                            what = acao.get("what", "").strip()
+                            if what and what.lower() not in existentes_what:
+                                # Garantir que todos os campos existem
+                                for campo in ["why", "where", "when", "who", "how", "how_much"]:
+                                    if campo not in acao:
+                                        acao[campo] = ""
+                                acao["status"] = "Não iniciado"
+                                acoes_adicionadas.append(acao)
+                                existentes_what.add(what.lower())
+                        
+                        if acoes_adicionadas:
+                            data["acao_5w2h"] = acoes_existentes + acoes_adicionadas
+                            st.success(f"✅ {len(acoes_adicionadas)} novas ações geradas e adicionadas ao plano!")
+                            st.rerun()
+                        else:
+                            st.info("ℹ️ Todas as ações sugeridas já existem no plano.")
+                    else:
+                        st.warning("⚠️ A IA não gerou novas ações. Tente novamente com mais informações.")
+                        
+                except json.JSONDecodeError as e:
+                    st.error(f"❌ Erro ao parsear resposta da IA: {str(e)}")
                     st.code(conteudo)
                     
             except Exception as e:
@@ -266,20 +291,30 @@ if edited is not None:
         data["acao_5w2h"] = novos_itens
         st.rerun()
 
-# Botão de download
-if data.get("acao_5w2h"):
-    df_download = pd.DataFrame(data["acao_5w2h"])
-    st.download_button(
-        "⬇️ Baixar Plano de Ação (CSV)",
-        data=df_download.rename(columns=nomes_colunas).to_csv(index=False).encode("utf-8-sig"),
-        file_name="plano_de_acao_5w2h.csv",
-        mime="text/csv",
-    )
+# Botões de download e limpar
+col_download1, col_download2 = st.columns([1, 5])
+with col_download1:
+    if data.get("acao_5w2h"):
+        df_download = pd.DataFrame(data["acao_5w2h"])
+        st.download_button(
+            "⬇️ Baixar CSV",
+            data=df_download.rename(columns=nomes_colunas).to_csv(index=False).encode("utf-8-sig"),
+            file_name="plano_de_acao_5w2h.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
 
 st.divider()
 
 # ========== ASSISTENTE IA PARA AJUDA ==========
 st.subheader("💬 Assistente IA - Ajuda com o Plano de Ação")
+
+# Botão para limpar chat
+col_chat1, col_chat2 = st.columns([5, 1])
+with col_chat2:
+    if st.button("🗑️ Limpar Chat", use_container_width=True):
+        st.session_state.messages_acao = []
+        st.rerun()
 
 if "messages_acao" not in st.session_state:
     st.session_state.messages_acao = []
@@ -333,7 +368,12 @@ RECURSOS DISPONÍVEIS:
 RESTRIÇÕES:
 {restricoes or 'Não informado'}
 
-Responda em português do Brasil, de forma prática e orientada a execução. Seja útil e objetivo."""}
+INSTRUÇÕES ESPECIAIS:
+1. Se o usuário pedir para ADICIONAR ações ao plano, você deve gerar as ações no formato 5W2H
+2. Para adicionar ações, responda com um JSON no formato: {{"add_acoes": [{{"what": "", "why": "", "where": "", "when": "", "who": "", "how": "", "how_much": "", "status": "Não iniciado"}}]}}
+3. Se não for para adicionar ações, responda normalmente em texto
+
+Responda em português do Brasil, de forma prática e orientada a execução."""}
             ] + st.session_state.messages_acao
             
             response = client.chat.completions.create(
@@ -343,6 +383,40 @@ Responda em português do Brasil, de forma prática e orientada a execução. Se
             )
             
             resposta = response.choices[0].message.content
+            
+            # Verificar se a resposta contém ações para adicionar
+            try:
+                # Tentar extrair JSON
+                json_match = re.search(r'\{.*\}', resposta, re.DOTALL)
+                if json_match:
+                    dados_json = json.loads(json_match.group())
+                    if "add_acoes" in dados_json:
+                        novas_acoes = dados_json["add_acoes"]
+                        if novas_acoes:
+                            # Adicionar ações ao plano
+                            existentes = data.get("acao_5w2h", [])
+                            existentes_what = {a.get("what", "").lower().strip() for a in existentes}
+                            acoes_adicionadas = []
+                            
+                            for acao in novas_acoes:
+                                what = acao.get("what", "").strip()
+                                if what and what.lower() not in existentes_what:
+                                    for campo in ["why", "where", "when", "who", "how", "how_much"]:
+                                        if campo not in acao:
+                                            acao[campo] = ""
+                                    acao["status"] = "Não iniciado"
+                                    acoes_adicionadas.append(acao)
+                                    existentes_what.add(what.lower())
+                            
+                            if acoes_adicionadas:
+                                data["acao_5w2h"] = existentes + acoes_adicionadas
+                                st.session_state.messages_acao.append({"role": "assistant", "content": f"✅ {len(acoes_adicionadas)} ações adicionadas ao plano!\n\n{resposta}"})
+                                st.rerun()
+                            else:
+                                resposta = f"ℹ️ As ações sugeridas já existem no plano.\n\n{resposta}"
+            except:
+                # Se não for JSON, manter resposta normal
+                pass
             
             st.session_state.messages_acao.append({"role": "assistant", "content": resposta})
             
