@@ -269,8 +269,6 @@ for msg in st.session_state.messages_pestel:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-st.divider()
-
 pergunta = st.text_area(
     "",
     placeholder="Pergunte ao assistente sobre a análise PESTEL...",
@@ -281,7 +279,7 @@ pergunta = st.text_area(
 col1, col2 = st.columns([5,1])
 
 with col2:
-    enviar = st.button("🤖 Enviar", width="stretch")
+    enviar = st.button("👽 Enviar", width="stretch")
 
 if enviar and pergunta.strip():
     st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
