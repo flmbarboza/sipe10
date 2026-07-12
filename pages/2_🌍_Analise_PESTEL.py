@@ -44,7 +44,11 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
     with tab:
         st.markdown(f"**{cat}** — {ajuda}")
 
+        if "pestel" not in data:
+            data["pestel"] = {}
+        
         itens = data["pestel"].get(cat, [])
+        
         df = pd.DataFrame(itens) if itens else pd.DataFrame(columns=["descricao", "tipo", "impacto"])
         for col, default in [("descricao", ""), ("tipo", "Oportunidade"), ("impacto", "Médio")]:
             if col not in df.columns:
