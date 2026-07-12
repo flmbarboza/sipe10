@@ -542,6 +542,12 @@ with tab3:
             data["objetivos"] = novos_itens
             st.rerun()
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa > Plano de Ação", width="stretch"):
+        st.switch_page("pages/6_✅_Plano_de_Ação_5W2H.py")
+        
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com o Planejamento Estratégico")
 
