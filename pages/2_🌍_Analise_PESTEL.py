@@ -54,37 +54,27 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
         # Buscar dados atuais
         itens = data["pestel"].get(cat, [])
         
-        # Criar DataFrame garantindo colunas com valores padrão
+        # Garantir que todos os itens tenham os campos necessários
+        for item in itens:
+            if "tipo" not in item or item["tipo"] not in TIPOS:
+                item["tipo"] = "Oportunidade"
+            if "impacto" not in item or item["impacto"] not in IMPACTOS:
+                item["impacto"] = "Médio"
+            if "descricao" not in item:
+                item["descricao"] = ""
+        
+        # Criar DataFrame
         if itens:
             df = pd.DataFrame(itens)
-            # Garantir colunas existentes
-            for col in ["descricao", "tipo", "impacto"]:
-                if col not in df.columns:
-                    if col == "tipo":
-                        df[col] = "Oportunidade"
-                    elif col == "impacto":
-                        df[col] = "Médio"
-                    else:
-                        df[col] = ""
         else:
-            # DataFrame vazio com estrutura correta
-            df = pd.DataFrame({
-                "descricao": pd.Series(dtype="string"),
-                "tipo": pd.Series(dtype="string"),
-                "impacto": pd.Series(dtype="string")
-            })
+            df = pd.DataFrame(columns=["descricao", "tipo", "impacto"])
         
-        # CORREÇÃO: Definir valores padrão para novas linhas
-        # Criar um dicionário de defaults para o data_editor
-        column_defaults = {
-            "descricao": "",
-            "tipo": "Oportunidade",
-            "impacto": "Médio"
-        }
+        # CORREÇÃO: Usar uma chave que muda quando os dados mudam
+        # para forçar recriação do editor e aplicar valores padrão
+        df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
+        editor_key = f"editor_pestel_{cat}_{df_hash}"
         
-        # Usar uma chave estável baseada no estado atual
-        editor_key = f"editor_pestel_{cat}"
-        
+        # CORREÇÃO: Remover column_defaults e usar uma abordagem diferente
         edited = st.data_editor(
             df, 
             num_rows="dynamic", 
@@ -92,12 +82,20 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             key=editor_key,
             column_config={
                 "descricao": st.column_config.TextColumn("Descrição do fator", width="large"),
-                "tipo": st.column_config.SelectboxColumn("Tipo", options=TIPOS),
-                "impacto": st.column_config.SelectboxColumn("Impacto", options=IMPACTOS),
+                "tipo": st.column_config.SelectboxColumn(
+                    "Tipo", 
+                    options=TIPOS,
+                    required=True,
+                    default="Oportunidade"
+                ),
+                "impacto": st.column_config.SelectboxColumn(
+                    "Impacto", 
+                    options=IMPACTOS,
+                    required=True,
+                    default="Médio"
+                ),
             },
             hide_index=True,
-            # CORREÇÃO PRINCIPAL: Forçar valores padrão para novas linhas
-            column_defaults=column_defaults
         )
         
         # Processar dados editados
@@ -105,14 +103,18 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             # Substituir NaN por valores vazios
             edited = edited.fillna("")
             
-            # Para novas linhas, garantir que tipo e impacto tenham valores
+            # CORREÇÃO: Garantir que novas linhas tenham valores padrão
             for idx, row in edited.iterrows():
+                # Verificar se é uma nova linha (linha vazia ou sem descrição)
+                descricao = row.get("descricao", "").strip()
+                
+                # Se é uma linha nova ou vazia, aplicar padrões
                 if pd.isna(row.get("tipo")) or row.get("tipo") == "":
                     edited.at[idx, "tipo"] = "Oportunidade"
                 if pd.isna(row.get("impacto")) or row.get("impacto") == "":
                     edited.at[idx, "impacto"] = "Médio"
             
-            # Converter para lista de dicionários, ignorando linhas sem descrição
+            # Converter para lista de dicionários
             novos_itens = []
             for _, row in edited.iterrows():
                 descricao = row.get("descricao", "").strip()
@@ -126,6 +128,8 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             # Atualizar dados apenas se houve mudança
             if novos_itens != data["pestel"].get(cat, []):
                 data["pestel"][cat] = novos_itens
+                # Forçar rerun para atualizar o editor
+                st.rerun()
         else:
             # Se o editor está vazio, garantir que a categoria tenha lista vazia
             if data["pestel"].get(cat, []):
