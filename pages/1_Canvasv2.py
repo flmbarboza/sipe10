@@ -240,10 +240,15 @@ def render_bloco(chave, titulo, desc, altura=150):
     st.caption(desc)
     
     itens = data["bmc"].get(chave, [])
-    df = pd.DataFrame(itens, columns=["item"]) if itens else pd.DataFrame(columns=["item"])
+    
+    # CORREÇÃO: Criar DataFrame de forma segura
+    if itens and isinstance(itens, list):
+        df = pd.DataFrame({"item": itens})
+    else:
+        df = pd.DataFrame(columns=["item"])
     
     # Hash para forçar recriação
-    df_hash = hash(str(sorted([str(item) for item in itens]))) if itens else 0
+    df_hash = hash(str(sorted([str(item) for item in itens]))) if itens and isinstance(itens, list) else 0
     editor_key = f"bmc_editor_{chave}_{df_hash}"
     
     edited = st.data_editor(
@@ -259,8 +264,7 @@ def render_bloco(chave, titulo, desc, altura=150):
     )
     
     # Processar dados editados
-    if edited is not None:
-        edited = edited.fillna("")
+    if edited is not None and not edited.empty:
         novos_itens = []
         for _, row in edited.iterrows():
             item = str(row.get("item", "")).strip()
@@ -271,7 +275,7 @@ def render_bloco(chave, titulo, desc, altura=150):
             data["bmc"][chave] = novos_itens
             st.rerun()
     
-    # Botão para sugerir com IA
+        # Botão para sugerir com IA
     if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", use_container_width=True):
         with st.spinner(f"Gerando sugestão para {titulo}..."):
             try:
@@ -303,28 +307,46 @@ def render_bloco(chave, titulo, desc, altura=150):
                 
                 sugestao = response.choices[0].message.content
                 
+                # CORREÇÃO: Melhor tratamento do JSON
                 try:
+                    # Tentar extrair JSON da resposta
                     json_match = re.search(r'\{.*\}', sugestao, re.DOTALL)
                     if json_match:
                         dados = json.loads(json_match.group())
-                        novos_itens = dados.get("itens", [])
-                        if novos_itens:
-                            # Mesclar com itens existentes
-                            existentes = data["bmc"].get(chave, [])
-                            existentes_what = set([str(item).lower().strip() for item in existentes])
-                            for item in novos_itens:
-                                if str(item).lower().strip() not in existentes_what:
-                                    existentes.append(item)
+                    else:
+                        dados = json.loads(sugestao)
+                    
+                    novos_itens = dados.get("itens", [])
+                    if novos_itens and isinstance(novos_itens, list):
+                        # Mesclar com itens existentes
+                        existentes = data["bmc"].get(chave, [])
+                        if not isinstance(existentes, list):
+                            existentes = []
+                        existentes_what = set([str(item).lower().strip() for item in existentes if item])
+                        
+                        adicionados = 0
+                        for item in novos_itens:
+                            if item and str(item).lower().strip() not in existentes_what:
+                                existentes.append(str(item).strip())
+                                adicionados += 1
+                        
+                        if adicionados > 0:
                             data["bmc"][chave] = existentes
+                            st.success(f"✅ {adicionados} itens adicionados para {titulo}!")
                             st.rerun()
-                except:
-                    st.error("Erro ao processar sugestão")
+                        else:
+                            st.info(f"ℹ️ Todos os itens sugeridos já existem em {titulo}.")
+                    else:
+                        st.warning("Nenhum item válido encontrado na sugestão.")
+                        
+                except json.JSONDecodeError:
+                    st.error("Erro ao processar a resposta da IA. Tente novamente.")
+                    # Opcional: mostrar a resposta para debug
+                    # st.code(sugestao)
                     
             except Exception as e:
                 st.error(f"❌ Erro: {str(e)}")
     
-    st.markdown("---")
-
 # Layout em 3 colunas seguindo o Canvas
 col_esquerda, col_centro, col_direita = st.columns([1, 1.2, 1])
 
