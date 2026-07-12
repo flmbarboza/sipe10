@@ -13,8 +13,6 @@ data = get_data()
 
 # ---------- Barra lateral (comum a todas as páginas) ----------
 st.sidebar.title("🧭 Gestor Estratégico")
-#sidebar_api_key_input()
-#st.divider() if False else None
 sidebar_data_controls()
 
 # ---------- Conteúdo da Home ----------
@@ -53,9 +51,13 @@ etapas = [
     ("⚔️", "5 Forças de Porter", "Intensidade competitiva do setor."),
     ("🎯", "Análise SWOT", "Forças, Fraquezas, Oportunidades e Ameaças, alimentada pelas análises acima."),
     ("🧭", "Planejamento Estratégico", "Missão, Visão, Valores, SWOT cruzada, Objetivos e KPIs."),
-    ("💰", "Plano Financeiro", "Receitas, custos, investimento e projeção."),
     ("✅", "Plano de Ação (5W2H)", "O que, por quê, onde, quando, quem, como e quanto custa."),
-    ("📄", "Relatório Completo", "Compilação de tudo, pronta para exportar em PDF/Markdown."),
+    ("📋", "Planos por Função", "Planos departamentais com objetivos, ações, indicadores e riscos."),
+    ("💰", "Orçamento", "Consolidação financeira, fluxo de caixa e indicadores."),
+    ("🛃", "Monitoramento", "Acompanhamento de KPIs, ações e alertas."),
+    ("🔄", "Revisão Estratégica", "Revisão periódica com lições aprendidas e recomendações."),
+    ("📈", "Painel de Controle", "Visão consolidada de todo o planejamento."),
+    ("📄", "Relatório Completo", "Compilação de tudo, pronta para exportar."),
 ]
 
 cols = st.columns(2)
@@ -64,8 +66,138 @@ for i, (icone, titulo, desc) in enumerate(etapas):
         st.markdown(f"**{icone} {titulo}**")
         st.caption(desc)
 
+st.divider()
+
+st.subheader("📊 Resumo do Planejamento")
+
+# Calcular progresso
+total_secoes = 11
+preenchidas = 0
+
+if data.get("empresa", {}).get("nome"):
+    preenchidas += 1
+if data.get("bmc") and any(data["bmc"].values()):
+    preenchidas += 1
+if data.get("pestel") and any([any([i.get("descricao") for i in itens]) for itens in data["pestel"].values()]):
+    preenchidas += 1
+if data.get("porter_analise") and any([v.get("notas") for v in data["porter_analise"].values()]):
+    preenchidas += 1
+if data.get("swot") and any([any([i.get("descricao") for i in itens]) for itens in data["swot"].values()]):
+    preenchidas += 1
+if data.get("mvv") and (data["mvv"].get("missao") or data["mvv"].get("visao")):
+    preenchidas += 1
+if data.get("objetivos") and any([o.get("objetivo") for o in data["objetivos"]]):
+    preenchidas += 1
+if data.get("acao_5w2h") and any([a.get("what") for a in data["acao_5w2h"]]):
+    preenchidas += 1
+if data.get("departamentos") and any([any([v for v in depto.values() if v]) for depto in data["departamentos"].values()]):
+    preenchidas += 1
+if data.get("orcamento") and (data["orcamento"].get("receitas") or data["orcamento"].get("investimentos")):
+    preenchidas += 1
+if data.get("monitoramento") and data["monitoramento"].get("alertas"):
+    preenchidas += 1
+
+progresso = (preenchidas / total_secoes) * 100
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Progresso Total", f"{progresso:.0f}%")
+with col2:
+    st.metric("Seções Preenchidas", f"{preenchidas}/{total_secoes}")
+with col3:
+    total_acoes = len([a for a in data.get("acao_5w2h", []) if a.get("what")])
+    st.metric("Ações Totais", total_acoes)
+with col4:
+    deptos = len(data.get("departamentos", {}))
+    st.metric("Departamentos", deptos)
+
+# Barra de progresso
+st.progress(progresso / 100, text=f"Progresso do planejamento: {progresso:.0f}%")
+
 st.info(
     "💡 Use o botão **'⬇️ Baixar dados (.json)'** na barra lateral sempre que quiser "
     "salvar seu progresso, e **'⬆️ Carregar dados (.json)'** para retomar depois.",
     icon="💡",
 )
+
+st.divider()
+
+# ========== ASSISTENTE IA PARA AJUDA ==========
+st.subheader("💬 Assistente IA - Ajuda com o Planejamento")
+
+col_chat1, col_chat2 = st.columns([5, 1])
+with col_chat2:
+    if st.button("🗑️ Limpar Chat", use_container_width=True):
+        st.session_state.messages_home = []
+        st.rerun()
+
+if "messages_home" not in st.session_state:
+    st.session_state.messages_home = []
+
+for msg in st.session_state.messages_home:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+if pergunta := st.chat_input("Pergunte ao assistente sobre o planejamento estratégico..."):
+    st.session_state.messages_home.append({"role": "user", "content": pergunta})
+    
+    with st.chat_message("user"):
+        st.markdown(pergunta)
+    
+    with st.spinner("🤔 Pensando..."):
+        try:
+            from openai import OpenAI
+            import re
+            
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            
+            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+            
+            contexto = f"""
+            SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+            
+            EMPRESA: {empresa_nome}
+            SETOR: {empresa_setor}
+            PROGRESSO: {progresso:.0f}%
+            SEÇÕES PREENCHIDAS: {preenchidas}/{total_secoes}
+            TOTAL DE AÇÕES: {len([a for a in data.get('acao_5w2h', []) if a.get('what')])}
+            DEPARTAMENTOS: {len(data.get('departamentos', {}))}
+            """
+            
+            mensagens = [
+                {"role": "system", "content": f"""Você é um assistente especialista em Planejamento Estratégico.
+
+{contexto}
+
+O SIPE possui as seguintes seções:
+0. Início - Dados da empresa
+1. Business Model Canvas
+2. Análise PESTEL
+3. 5 Forças de Porter
+4. Análise SWOT
+5. Planejamento Estratégico (MVV, SWOT Cruzada, Objetivos)
+6. Plano de Ação 5W2H
+7. Planos por Função (Departamentais)
+8. Orçamento
+9. Monitoramento
+10. Revisão Estratégica
+11. Painel de Controle
+
+Responda em português do Brasil, de forma prática e objetiva."""}
+            ] + st.session_state.messages_home[:-1]
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=mensagens,
+                temperature=0.7
+            )
+            
+            resposta = response.choices[0].message.content
+            st.session_state.messages_home.append({"role": "assistant", "content": resposta})
+            
+            with st.chat_message("assistant"):
+                st.markdown(resposta)
+                
+        except Exception as e:
+            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
