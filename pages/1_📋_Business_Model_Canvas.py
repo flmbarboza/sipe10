@@ -130,9 +130,9 @@ col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
 with col_gerar1:
     st.caption("A IA vai analisar suas informações e gerar conteúdo para todos os 9 blocos do BMC")
 with col_gerar2:
-    gerar_bmc = st.button("🔄 Gerar BMC Completo", use_container_width=True)
+    gerar_bmc = st.button("🔄 Gerar BMC Completo", width="stretch")
 with col_gerar3:
-    limpar_bmc = st.button("🗑️ Limpar BMC", use_container_width=True, help="Remove todo o conteúdo do BMC")
+    limpar_bmc = st.button("🗑️ Limpar BMC", width="stretch", help="Remove todo o conteúdo do BMC")
     
     if limpar_bmc:
         for chave, _, _ in BLOCOS:
@@ -254,7 +254,7 @@ def render_bloco(chave, titulo, desc, altura=150):
     edited = st.data_editor(
         df,
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         key=editor_key,
         column_config={
@@ -276,7 +276,7 @@ def render_bloco(chave, titulo, desc, altura=150):
             st.rerun()
     
         # Botão para sugerir com IA
-    if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", use_container_width=True):
+    if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", width="stretch"):
         with st.spinner(f"Gerando sugestão para {titulo}..."):
             try:
                 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -402,7 +402,7 @@ df_canvas.columns = ["Conteúdo"]
 
 st.dataframe(
     df_canvas,
-    use_container_width=True,
+    width="stretch",
     height=400,
     column_config={
         "Conteúdo": st.column_config.TextColumn("Conteúdo", width="large")
@@ -412,7 +412,7 @@ st.dataframe(
 # Botão para copiar ou exportar
 col_export1, col_export2 = st.columns(2)
 with col_export1:
-    if st.button("📋 Copiar Canvas (Texto)", use_container_width=True):
+    if st.button("📋 Copiar Canvas (Texto)", width="stretch"):
         texto = "BUSINESS MODEL CANVAS\n" + "="*50 + "\n\n"
         for chave, titulo, desc in BLOCOS:
             itens = data["bmc"].get(chave, [])
@@ -426,14 +426,14 @@ with col_export1:
         st.code(texto, language="markdown")
         
 with col_export2:
-    if st.button("⬇️ Baixar Canvas (JSON)", use_container_width=True):
+    if st.button("⬇️ Baixar Canvas (JSON)", width="stretch"):
         json_str = json.dumps(data["bmc"], indent=2, ensure_ascii=False)
         st.download_button(
             "📥 Baixar JSON",
             data=json_str,
             file_name="business_model_canvas.json",
             mime="application/json",
-            use_container_width=True
+            width="stretch"
         )
 
 st.success("✅ Todos os blocos são salvos automaticamente. Use a página 'Relatório Completo' para exportar tudo.")
@@ -444,7 +444,7 @@ st.subheader("💬 Assistente IA - Ajuda com o Business Model Canvas")
 
 col_chat1, col_chat2 = st.columns([5, 1])
 with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
+    if st.button("🗑️ Limpar Chat", width="stretch"):
         st.session_state.messages_bmc = []
         st.rerun()
 
