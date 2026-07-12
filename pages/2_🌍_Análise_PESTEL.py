@@ -271,7 +271,19 @@ for msg in st.session_state.messages_pestel:
 
 st.divider()
 
-if pergunta := st.text_area("Pergunte ao assistente sobre a análise PESTEL..."):
+pergunta = st.text_area(
+    "",
+    placeholder="Pergunte ao assistente sobre a análise PESTEL...",
+    height=80,
+    key="pergunta_pestel"
+)
+
+col1, col2 = st.columns([5,1])
+
+with col2:
+    enviar = st.button("🤖", width="stretch")
+
+if enviar and pergunta.strip():
     st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
     
     with st.chat_message("user"):
