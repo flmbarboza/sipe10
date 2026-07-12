@@ -36,7 +36,7 @@ with st.form("form_empresa"):
     with col2:
         cidade = st.text_input("Cidade/Estado", value=data["empresa"]["cidade_estado"])
         responsavel = st.text_input("Responsável pelo planejamento", value=data["empresa"]["responsavel"])
-    salvar = st.form_submit_button("Salvar dados da empresa", use_container_width=True)
+    salvar = st.form_submit_button("Salvar dados da empresa", width="stretch")
     if salvar:
         data["empresa"].update(
             {"nome": nome, "setor": setor, "cidade_estado": cidade, "responsavel": responsavel}
