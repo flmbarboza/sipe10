@@ -253,8 +253,22 @@ st.info(
     "**🎯 Análise SWOT** para consolidar tudo automaticamente."
 )
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa > 5 Forças de Porter", width="stretch"):
+        st.switch_page("pages/3_⚔️_5_Forças_de_Porter.py")
+
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com a Análise PESTEL")
+# ========== CAMPOS DE ENVIO ==========
+col1, col2, col3 = st.columns([4, 1, 1])
+with col2:
+    enviar = st.button("👽 Enviar")
+with col3:
+    if st.button("🗑️ Limpar Chat"):
+        st.session_state.messages_pestel = []
+        st.rerun()
 
 if "messages_pestel" not in st.session_state:
     st.session_state.messages_pestel = []
@@ -320,20 +334,3 @@ Responda em português do Brasil, de forma prática e objetiva."""}
                 
         except Exception as e:
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
-
-# ========== CAMPOS DE ENVIO ==========
-col1, col2, col3 = st.columns([4, 1, 1])
-with col2:
-    enviar = st.button("👽 Enviar")
-with col3:
-    if st.button("🗑️ Limpar Chat"):
-        st.session_state.messages_pestel = []
-        st.rerun()
-
-st.divider()
-
-# ========== BOTÃO PRÓXIMA ETAPA ==========
-col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
-with col_prox2:
-    if st.button("➡️ Próxima Etapa > 5 Forças de Porter", width="stretch"):
-        st.switch_page("pages/3_⚔️_5_Forças_de_Porter.py")
