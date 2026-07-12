@@ -48,32 +48,86 @@ def gerar_analise_ia(forca_id=None):
     try:
         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
         
+        # ========== COLETAR DADOS DAS OUTRAS PÁGINAS ==========
+        # Dados da empresa
+        empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+        empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+        empresa_cidade = data.get("empresa", {}).get("cidade_estado", "")
+        
+        # Dados do BMC
+        bmc_dados = ""
+        if "bmc" in data and isinstance(data["bmc"], dict):
+            bmc_itens = []
+            for chave, valor in data["bmc"].items():
+                if valor:
+                    if isinstance(valor, list):
+                        bmc_itens.append(f"- {chave}: {', '.join(valor)}")
+                    elif isinstance(valor, str) and valor.strip():
+                        bmc_itens.append(f"- {chave}: {valor}")
+            if bmc_itens:
+                bmc_dados = "\n".join(bmc_itens)
+        
+        # Dados do PESTEL
+        pestel_dados = ""
+        if "pestel" in data and isinstance(data["pestel"], dict):
+            pestel_itens = []
+            for cat, itens in data["pestel"].items():
+                if itens and isinstance(itens, list):
+                    for item in itens:
+                        if isinstance(item, dict) and item.get("descricao"):
+                            pestel_itens.append(f"- {cat}: {item['descricao']} ({item.get('tipo', '')})")
+            if pestel_itens:
+                pestel_dados = "\n".join(pestel_itens[:10])  # Limitar para não estourar token
+        
+        # Dados da SWOT
+        swot_dados = ""
+        if "swot" in data and isinstance(data["swot"], dict):
+            swot_itens = []
+            for chave, itens in data["swot"].items():
+                if itens and isinstance(itens, list):
+                    for item in itens:
+                        if isinstance(item, dict) and item.get("descricao"):
+                            swot_itens.append(f"- {chave}: {item['descricao']}")
+            if swot_itens:
+                swot_dados = "\n".join(swot_itens[:10])
+        
+        # Montar contexto
+        contexto = f"""
+        INFORMAÇÕES DA EMPRESA:
+        - Nome: {empresa_nome}
+        - Setor: {empresa_setor}
+        - Localização: {empresa_cidade or "Não informado"}
+        
+        BUSINESS MODEL CANVAS:
+        {bmc_dados or "Não informado"}
+        
+        ANÁLISE PESTEL:
+        {pestel_dados or "Não informado"}
+        
+        ANÁLISE SWOT:
+        {swot_dados or "Não informado"}
+        """
+        
         if forca_id:
             forca = next(f for f in FORCAS if f["id"] == forca_id)
             prompt = f"""
             Você é um consultor especialista em 5 Forças de Porter.
             
-            INFORMAÇÕES DA EMPRESA:
-            - Nome: {empresa_nome}
-            - Setor: {empresa_setor}
-            - Localização: {empresa_cidade or "Não informado"}
+            {contexto}
             
             Força de Porter: {forca['nome']}
             Descrição: {forca['ajuda']}
             
-            Gere uma análise objetiva em português do Brasil para esta força.
+            Com base nas informações da empresa, setor e demais análises, gere uma análise objetiva em português do Brasil para esta força.
             Responda APENAS com um JSON: {{"intensidade": 3, "notas": "análise detalhada"}}
             """
         else:
             prompt = f"""
             Você é um consultor especialista em 5 Forças de Porter.
             
-            INFORMAÇÕES DA EMPRESA:
-            - Nome: {empresa_nome}
-            - Setor: {empresa_setor}
-            - Localização: {empresa_cidade or "Não informado"}
+            {contexto}
             
-            Analise as 5 Forças de Porter para este setor em português do Brasil.
+            Com base nas informações da empresa, setor e demais análises, analise as 5 Forças de Porter em português do Brasil.
             
             FORMATO DE SAÍDA: Retorne APENAS um JSON com:
             {{
