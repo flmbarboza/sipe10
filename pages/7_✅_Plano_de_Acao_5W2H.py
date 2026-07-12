@@ -319,12 +319,18 @@ with col_chat2:
 if "messages_acao" not in st.session_state:
     st.session_state.messages_acao = []
 
+# CORREÇÃO: Flag para controlar se já processamos a mensagem
+if "processando_mensagem" not in st.session_state:
+    st.session_state.processando_mensagem = False
+
 for msg in st.session_state.messages_acao:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if pergunta := st.chat_input("Pergunte ao assistente sobre seu plano de ação..."):
+    # Adicionar mensagem do usuário
     st.session_state.messages_acao.append({"role": "user", "content": pergunta})
+    st.session_state.processando_mensagem = True
     
     with st.chat_message("user"):
         st.markdown(pergunta)
@@ -374,7 +380,7 @@ INSTRUÇÕES ESPECIAIS:
 3. Se não for para adicionar ações, responda normalmente em texto
 
 Responda em português do Brasil, de forma prática e orientada a execução."""}
-            ] + st.session_state.messages_acao
+            ] + st.session_state.messages_acao[:-1]  # CORREÇÃO: Não incluir a última mensagem duplicada
             
             response = client.chat.completions.create(
                 model="openai/gpt-oss-20b",
@@ -384,7 +390,8 @@ Responda em português do Brasil, de forma prática e orientada a execução."""
             
             resposta = response.choices[0].message.content
             
-            # Verificar se a resposta contém ações para adicionar
+            # CORREÇÃO: Processar resposta e adicionar ações se necessário
+            acoes_adicionadas = False
             try:
                 # Tentar extrair JSON
                 json_match = re.search(r'\{.*\}', resposta, re.DOTALL)
@@ -396,7 +403,7 @@ Responda em português do Brasil, de forma prática e orientada a execução."""
                             # Adicionar ações ao plano
                             existentes = data.get("acao_5w2h", [])
                             existentes_what = {a.get("what", "").lower().strip() for a in existentes}
-                            acoes_adicionadas = []
+                            acoes_adicionadas_lista = []
                             
                             for acao in novas_acoes:
                                 what = acao.get("what", "").strip()
@@ -405,23 +412,29 @@ Responda em português do Brasil, de forma prática e orientada a execução."""
                                         if campo not in acao:
                                             acao[campo] = ""
                                     acao["status"] = "Não iniciado"
-                                    acoes_adicionadas.append(acao)
+                                    acoes_adicionadas_lista.append(acao)
                                     existentes_what.add(what.lower())
                             
-                            if acoes_adicionadas:
-                                data["acao_5w2h"] = existentes + acoes_adicionadas
-                                st.session_state.messages_acao.append({"role": "assistant", "content": f"✅ {len(acoes_adicionadas)} ações adicionadas ao plano!\n\n{resposta}"})
-                                st.rerun()
-                            else:
-                                resposta = f"ℹ️ As ações sugeridas já existem no plano.\n\n{resposta}"
+                            if acoes_adicionadas_lista:
+                                data["acao_5w2h"] = existentes + acoes_adicionadas_lista
+                                acoes_adicionadas = True
+                                # CORREÇÃO: Adicionar mensagem de confirmação
+                                resposta = f"✅ {len(acoes_adicionadas_lista)} ações adicionadas ao plano!\n\n{resposta}"
             except:
                 # Se não for JSON, manter resposta normal
                 pass
             
+            # CORREÇÃO: Adicionar resposta ao chat apenas uma vez
             st.session_state.messages_acao.append({"role": "assistant", "content": resposta})
+            st.session_state.processando_mensagem = False
             
             with st.chat_message("assistant"):
                 st.markdown(resposta)
+            
+            # CORREÇÃO: Se adicionou ações, forçar rerun para atualizar o plano
+            if acoes_adicionadas:
+                st.rerun()
                 
         except Exception as e:
             st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
+            st.session_state.processando_mensagem = False
