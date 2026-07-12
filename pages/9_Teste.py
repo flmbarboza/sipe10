@@ -31,7 +31,7 @@ if pergunta := st.chat_input("Pergunte ao assistente..."):
         st.markdown(pergunta)
 
     resposta = client.chat.completions.create(
-        model="google/gemma-3-27b-it:free",
+        model="microsoft/phi-4-reasoning-plus:free",
         messages=st.session_state.messages
     )
 
