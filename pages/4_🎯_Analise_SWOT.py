@@ -77,6 +77,8 @@ def gerar_analise_swot(quadrante=None):
         if quadrante:
             chave, titulo, ajuda = next(q for q in QUADRANTES if q[0] == quadrante)
             prompt = f"""
+            Você é um consultor de estratégia especialista em análise SWOT.
+            
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
@@ -84,16 +86,18 @@ def gerar_analise_swot(quadrante=None):
             Quadrante SWOT: {titulo}
             Descrição: {ajuda}
             
-            Gere uma lista de 3-5 itens para este quadrante.
+            Gere uma lista de 3 a 5 itens em português do Brasil para este quadrante.
             Responda APENAS com um JSON: {{"itens": ["item1", "item2", "item3"]}}
             """
         else:
             prompt = f"""
+            Você é um consultor de estratégia especialista em análise SWOT.
+            
             INFORMAÇÕES DA EMPRESA:
             - Nome: {empresa_nome}
             - Setor: {empresa_setor}
             
-            Gere uma análise SWOT completa com os 4 quadrantes.
+            Gere uma análise SWOT completa com os 4 quadrantes em português do Brasil.
             
             FORMATO DE SAÍDA: Retorne APENAS um JSON com:
             {{
@@ -107,7 +111,7 @@ def gerar_analise_swot(quadrante=None):
         response = client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=[
-                {"role": "system", "content": "Você é um consultor especialista em análise SWOT. Responda APENAS com JSON válido."},
+                {"role": "system", "content": "Você é um consultor especialista em análise SWOT. Responda em português do Brasil. Retorne APENAS JSON válido."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7
