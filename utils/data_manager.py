@@ -11,6 +11,7 @@ uma estrutura única (dicionário aninhado). Este módulo cuida de:
 import json
 import copy
 import streamlit as st
+import pandas as pd
 
 DEFAULT_DATA = {
     "empresa": {
@@ -147,8 +148,10 @@ def salvar_pestel(cat):
 
     valor = st.session_state[f"editor_pestel_{cat}"]
 
+    df = pd.DataFrame(valor)
+
     st.session_state.data["pestel"][cat] = (
-        valor
+        df
         .fillna("")
         .to_dict("records")
     )
