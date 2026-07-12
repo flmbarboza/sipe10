@@ -137,20 +137,24 @@ paginas = [
     "12_📄_Relatório_Completo",
 ]
 
-# Encontrar a página atual
-pagina_atual = "00_🏠_Início"
-for i, pagina in enumerate(paginas):
-    if pagina_atual in st.session_state.get("pagina_atual", ""):
-        proxima_pagina = paginas[i + 1] if i + 1 < len(paginas) else None
-        break
-else:
-    proxima_pagina = paginas[0]  # Se não encontrar, vai para a primeira
+# Usar session_state para controlar a navegação
+if "pagina_index" not in st.session_state:
+    st.session_state.pagina_index = 0
 
-if proxima_pagina:
+# Atualizar índice baseado na página atual
+for i, pagina in enumerate(paginas):
+    if pagina in st.page_config.get("page_title", ""):
+        st.session_state.pagina_index = i
+        break
+
+if st.session_state.pagina_index < len(paginas) - 1:
+    proxima_pagina = paginas[st.session_state.pagina_index + 1]
     col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
     with col_prox2:
         if st.button("➡️ Próxima Etapa", use_container_width=True):
+            st.session_state.pagina_index += 1
             st.switch_page(f"pages/{proxima_pagina}.py")
+
 st.divider()
 
 # ========== ASSISTENTE IA PARA AJUDA ==========
