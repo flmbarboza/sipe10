@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.data_manager import init_data, get_data, sidebar_data_controls, salvar_pestel
 from utils.ai_helper import sidebar_api_key_input, ai_assist_widget
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
@@ -54,11 +54,8 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
             if col not in df.columns:
                 df[col] = default
 
-        edited = st.data_editor(
-            df,
-            num_rows="dynamic",
-            width="stretch",
-            key=f"editor_pestel_{cat}",
+        edited = st.data_editor(df, num_rows="dynamic", width="stretch", key=f"editor_pestel_{cat}",
+            on_change=salvar_pestel, args=(cat,),
             column_config={
                 "descricao": st.column_config.TextColumn("Descrição do fator", width="large"),
                 "tipo": st.column_config.SelectboxColumn("Tipo", options=TIPOS),
@@ -74,11 +71,11 @@ for tab, (cat, ajuda) in zip(tabs, CATEGORIAS.items()):
         )
         
         st.session_state.data["pestel"][cat] = novos_itens
-        #st.write("EDITOR:")
-        #st.write(edited)
+        st.write("EDITOR:")
+        st.write(edited)
         
-        #st.write("DATA:")
-        #st.write(data["pestel"][cat])
+        st.write("DATA:")
+        st.write(data["pestel"][cat])
 
 
         def builder(instrucao, cat=cat, ajuda=ajuda):
