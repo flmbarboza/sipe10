@@ -30,8 +30,6 @@ with col2:
 
 st.divider()
 st.subheader("📈 Receitas mensais previstas")
-
-st.subheader("📈 Receitas mensais previstas")
 if fin["receitas"]:
     df_rec = pd.DataFrame(fin["receitas"])
     for col, default in [("descricao", ""), ("valor_mensal", 0.0)]:
