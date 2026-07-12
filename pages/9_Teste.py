@@ -1,8 +1,8 @@
 import streamlit as st
 from openai import OpenAI
 
-#client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-client = OpenAI(api_key=st.secrets["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"])
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 st.title("Meu Sistema")
 
 # Formulário principal
