@@ -2,6 +2,7 @@ import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input, ai_assist_widget, ask_claude
 from utils.pdf_export import markdown_to_pdf_bytes
+import base64
 
 st.set_page_config(page_title="Relatório Completo", page_icon="📄", layout="wide")
 init_data()
@@ -39,11 +40,9 @@ def build_markdown():
         "fontes_receita": "Fontes de Receita",
     }
     
-    # CORREÇÃO: Verificar se data["bmc"] existe e é um dicionário
     if "bmc" in data and isinstance(data["bmc"], dict):
         for chave, nome in nomes_bmc.items():
             conteudo = data["bmc"].get(chave, "")
-            # Verificar se é string, se for lista, juntar os itens
             if isinstance(conteudo, list):
                 conteudo = "\n".join([f"- {item}" for item in conteudo if item])
             elif isinstance(conteudo, str):
@@ -66,7 +65,6 @@ def build_markdown():
                     md += "\n"
 
     md += "### 2.2 Cinco Forças de Porter\n\n"
-    # CORREÇÃO: Verificar se porter_analise existe
     if "porter_analise" in data and isinstance(data["porter_analise"], dict):
         for forca_id, info in data["porter_analise"].items():
             if isinstance(info, dict):
@@ -190,8 +188,29 @@ with col1:
     )
 with col2:
     if st.button("📄 Gerar PDF", use_container_width=True):
-        pdf_bytes = markdown_to_pdf_bytes(markdown_texto)
-        st.session_state["relatorio_pdf_bytes"] = pdf_bytes
+        with st.spinner("Gerando PDF..."):
+            try:
+                pdf_bytes = markdown_to_pdf_bytes(markdown_texto)
+                st.session_state["relatorio_pdf_bytes"] = pdf_bytes
+                st.success("PDF gerado com sucesso!")
+            except Exception as e:
+                st.error(f"Erro ao gerar PDF: {str(e)}")
+                # Fallback: gerar um PDF simples com HTML
+                try:
+                    import pdfkit
+                    html_content = f"""
+                    <html>
+                    <head><meta charset="UTF-8"></head>
+                    <body style="font-family: Arial, sans-serif; padding: 40px;">
+                        {markdown_texto.replace('\n', '<br>').replace('#', '<h1>').replace('##', '<h2>').replace('###', '<h3>')}
+                    </body>
+                    </html>
+                    """
+                    pdf_bytes = pdfkit.from_string(html_content, False)
+                    st.session_state["relatorio_pdf_bytes"] = pdf_bytes
+                    st.success("PDF gerado com sucesso!")
+                except:
+                    st.warning("Não foi possível gerar o PDF. Use o download em Markdown.")
 
     if "relatorio_pdf_bytes" in st.session_state:
         st.download_button(
