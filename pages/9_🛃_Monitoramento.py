@@ -357,7 +357,7 @@ if st.button("🤖 Gerar Relatório Executivo", use_container_width=True):
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa", width="stretch"):
+    if st.button("➡️ Próxima Etapa > Revisão", width="stretch"):
         st.switch_page("pages/10_🔄_Revisão.py")
         
 # ========== ASSISTENTE IA ==========
