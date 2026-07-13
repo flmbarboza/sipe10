@@ -43,6 +43,47 @@ if "departamentos" not in data:
             "riscos": []
         }
 
+# ========== FUNÇÃO DE RENDERIZAÇÃO ==========
+def render_tabela(departamento, secao, colunas, titulo):
+    """Renderiza uma tabela editável e salva diretamente em data"""
+    st.markdown(f"**{titulo}**")
+    
+    dados = data["departamentos"][departamento][secao]
+    
+    if dados:
+        df = pd.DataFrame(dados)
+        for col in colunas:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[colunas]
+    else:
+        df = pd.DataFrame(columns=colunas)
+    
+    edited = st.data_editor(
+        df,
+        num_rows="dynamic",
+        width="stretch",
+        hide_index=True,
+        key=f"{departamento}_{secao}",
+        column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas}
+    )
+    
+    if edited is not None:
+        edited = edited.fillna("")
+        novos_dados = []
+        for _, row in edited.iterrows():
+            item = {}
+            valido = False
+            for col in colunas:
+                valor = str(row.get(col, "")).strip()
+                item[col] = valor
+                if valor:
+                    valido = True
+            if valido:
+                novos_dados.append(item)
+        
+        data["departamentos"][departamento][secao] = novos_dados
+
 # ========== FUNÇÕES DE IA ==========
 def gerar_plano_departamento_ia(departamento):
     """Gera plano completo para um departamento usando IA"""
@@ -52,7 +93,6 @@ def gerar_plano_departamento_ia(departamento):
         empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
         empresa_setor = data.get("empresa", {}).get("setor", "não informado")
         
-        # Coletar dados estratégicos
         swot_dados = ""
         if "swot" in data:
             for chave, itens in data["swot"].items():
@@ -91,32 +131,33 @@ def gerar_plano_departamento_ia(departamento):
         
         Com base nas informações acima, crie um plano completo para o departamento de {departamento}.
         
-        FORMATO DE SAÍDA: Retorne APENAS um JSON com:
+        FORMATO DE SAÍDA: Retorne APENAS um JSON com as seguintes chaves EXATAS:
         {{
             "objetivos": [
-                {{"objetivo": "texto", "estrategia": "texto", "prioridade": "Alta/Média/Baixa", 
-                  "responsavel": "texto", "prazo": "texto", "status": "Não iniciado"}}
+                {{"Objetivo": "texto", "Estratégia relacionada": "texto", "Prioridade": "Alta", 
+                  "Responsável": "texto", "Prazo": "texto", "Status": "Não iniciado"}}
             ],
             "acoes": [
-                {{"acao": "texto", "origem": "texto", "responsavel": "texto", 
-                  "data_inicio": "texto", "data_fim": "texto", "recursos": "texto", 
-                  "custo": "texto", "indicador": "texto", "meta": "texto", "situacao": "Não iniciado"}}
+                {{"Ação": "texto", "Origem": "texto", "Responsável": "texto", 
+                  "Data início": "texto", "Data fim": "texto", "Recursos necessários": "texto", 
+                  "Custo estimado": "texto", "Indicador": "texto", "Meta": "texto", "Situação": "Não iniciado"}}
             ],
             "indicadores": [
-                {{"indicador": "texto", "formula": "texto", "meta": "texto", 
-                  "valor_atual": "texto", "frequencia": "texto", "responsavel": "texto"}}
+                {{"Indicador": "texto", "Fórmula": "texto", "Meta": "texto", 
+                  "Valor Atual": "texto", "Frequência": "texto", "Responsável": "texto"}}
             ],
             "recursos": [
-                {{"recurso": "texto", "tipo": "texto", "quantidade": "texto", 
-                  "valor_estimado": "texto", "observacoes": "texto"}}
+                {{"Recurso": "texto", "Tipo": "texto", "Quantidade": "texto", 
+                  "Valor estimado": "texto", "Observações": "texto"}}
             ],
             "riscos": [
-                {{"risco": "texto", "probabilidade": "texto", "impacto": "texto", 
-                  "plano_mitigacao": "texto"}}
+                {{"Risco": "texto", "Probabilidade": "texto", "Impacto": "texto", 
+                  "Plano de mitigação": "texto"}}
             ]
         }}
         
-        Cada seção deve ter de 3 a 5 itens. Responda APENAS com o JSON.
+        Cada seção deve ter de 3 a 5 itens.
+        Responda APENAS com o JSON.
         """
         
         response = client.chat.completions.create(
@@ -138,54 +179,6 @@ def gerar_plano_departamento_ia(departamento):
         st.error(f"Erro na IA: {str(e)}")
         return None
 
-# ========== FUNÇÕES DE RENDERIZAÇÃO ==========
-def render_tabela(dados, colunas, titulo, chave, depto):
-    """Renderiza uma tabela editável e salva automaticamente os dados."""
-
-    st.markdown(f"**{titulo}**")
-
-    # Cria o DataFrame garantindo todas as colunas
-    if dados:
-        df = pd.DataFrame(dados)
-    else:
-        df = pd.DataFrame(columns=colunas)
-
-    for col in colunas:
-        if col not in df.columns:
-            df[col] = ""
-
-    # Editor
-    edited = st.data_editor(
-        df,
-        num_rows="dynamic",
-        width="stretch",
-        hide_index=True,
-        key=f"{depto}_{chave}",
-        column_config={
-            col: st.column_config.TextColumn(col, width="large")
-            for col in colunas
-        },
-        height=220
-    )
-
-    # Salva imediatamente
-    novos_dados = (
-        edited
-        .fillna("")
-        .replace(pd.NA, "")
-        .to_dict("records")
-    )
-
-    # Remove linhas completamente vazias
-    novos_dados = [
-        linha
-        for linha in novos_dados
-        if any(str(v).strip() for v in linha.values())
-    ]
-
-    # Atualiza o objeto data
-    data["departamentos"][depto][chave] = novos_dados
-    
 # ========== TABS POR DEPARTAMENTO ==========
 tabs = st.tabs(DEPARTAMENTOS)
 
@@ -193,102 +186,83 @@ for tab, depto in zip(tabs, DEPARTAMENTOS):
     with tab:
         st.subheader(f"📋 Plano - {depto}")
         
-        # Botão IA
         col_ia1, col_ia2 = st.columns([3, 1])
         with col_ia1:
             st.caption(f"🤖 A IA vai gerar um plano completo para o departamento de {depto} baseado nas análises estratégicas")
         with col_ia2:
-            if st.button(f"🤖 Sugerir Plano", key=f"ia_{depto}", use_container_width=True):
+            if st.button(f"🤖 Sugerir Plano", key=f"ia_{depto}", width="stretch"):
                 with st.spinner(f"Gerando plano para {depto}..."):
                     resultado = gerar_plano_departamento_ia(depto)
                     if resultado:
-                        for secao in ["objetivos", "acoes", "indicadores", "recursos", "riscos"]:
-                            if secao in resultado and resultado[secao]:
-                                data["departamentos"][depto][secao] = resultado[secao]
+                        if "objetivos" in resultado:
+                            data["departamentos"][depto]["objetivos"] = resultado["objetivos"]
+                        if "acoes" in resultado:
+                            data["departamentos"][depto]["acoes"] = resultado["acoes"]
+                        if "indicadores" in resultado:
+                            data["departamentos"][depto]["indicadores"] = resultado["indicadores"]
+                        if "recursos" in resultado:
+                            data["departamentos"][depto]["recursos"] = resultado["recursos"]
+                        if "riscos" in resultado:
+                            data["departamentos"][depto]["riscos"] = resultado["riscos"]
                         st.success(f"✅ Plano gerado para {depto}!")
                         st.rerun()
         
         st.divider()
         
-        # Objetivos
         with st.expander("🎯 Objetivos", expanded=True):
-            colunas_obj = ["Objetivo", "Estratégia relacionada", "Prioridade", "Responsável", "Prazo", "Status"]
-            novos = render_tabela(
-                data["departamentos"][depto]["objetivos"],
-                colunas_obj,
-                "Objetivos do departamento",
+            render_tabela(
+                depto,
                 "objetivos",
-                depto
+                ["Objetivo", "Estratégia relacionada", "Prioridade", "Responsável", "Prazo", "Status"],
+                "Objetivos do departamento"
             )
-            if novos != data["departamentos"][depto]["objetivos"]:
-                data["departamentos"][depto]["objetivos"] = novos
         
-        # Plano de Ações
         with st.expander("📋 Plano de Ações", expanded=True):
-            colunas_acoes = ["Ação", "Origem", "Responsável", "Data início", "Data fim", 
-                           "Recursos necessários", "Custo estimado", "Indicador", "Meta", "Situação"]
-            novos = render_tabela(
-                data["departamentos"][depto]["acoes"],
-                colunas_acoes,
-                "Plano de ações do departamento",
+            render_tabela(
+                depto,
                 "acoes",
-                depto
+                ["Ação", "Origem", "Responsável", "Data início", "Data fim", 
+                 "Recursos necessários", "Custo estimado", "Indicador", "Meta", "Situação"],
+                "Plano de ações do departamento"
             )
-            if novos != data["departamentos"][depto]["acoes"]:
-                data["departamentos"][depto]["acoes"] = novos
         
-        # Indicadores
         with st.expander("📊 Indicadores"):
-            colunas_ind = ["Indicador", "Fórmula", "Meta", "Valor Atual", "Frequência", "Responsável"]
-            novos = render_tabela(
-                data["departamentos"][depto]["indicadores"],
-                colunas_ind,
-                "Indicadores do departamento",
+            render_tabela(
+                depto,
                 "indicadores",
-                depto
+                ["Indicador", "Fórmula", "Meta", "Valor Atual", "Frequência", "Responsável"],
+                "Indicadores do departamento"
             )
-            if novos != data["departamentos"][depto]["indicadores"]:
-                data["departamentos"][depto]["indicadores"] = novos
         
-        # Recursos
         with st.expander("💰 Recursos Necessários"):
-            colunas_rec = ["Recurso", "Tipo", "Quantidade", "Valor estimado", "Observações"]
-            novos = render_tabela(
-                data["departamentos"][depto]["recursos"],
-                colunas_rec,
-                "Recursos necessários",
+            render_tabela(
+                depto,
                 "recursos",
-                depto
+                ["Recurso", "Tipo", "Quantidade", "Valor estimado", "Observações"],
+                "Recursos necessários"
             )
-            if novos != data["departamentos"][depto]["recursos"]:
-                data["departamentos"][depto]["recursos"] = novos
         
-        # Riscos
         with st.expander("⚠️ Riscos"):
-            colunas_riscos = ["Risco", "Probabilidade", "Impacto", "Plano de mitigação"]
-            novos = render_tabela(
-                data["departamentos"][depto]["riscos"],
-                colunas_riscos,
-                "Riscos do departamento",
+            render_tabela(
+                depto,
                 "riscos",
-                depto
+                ["Risco", "Probabilidade", "Impacto", "Plano de mitigação"],
+                "Riscos do departamento"
             )
-            if novos != data["departamentos"][depto]["riscos"]:
-                data["departamentos"][depto]["riscos"] = novos
 
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
     if st.button("➡️ Próxima Etapa > Orçamento", width="stretch"):
         st.switch_page("pages/8_💰_Orçamento.py")
-        
+
 # ========== ASSISTENTE IA ==========
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com Planos Departamentais")
 
 col_chat1, col_chat2 = st.columns([5, 1])
 with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
+    if st.button("🗑️ Limpar Chat", width="stretch"):
         st.session_state.messages_departamentos = []
         st.rerun()
 
