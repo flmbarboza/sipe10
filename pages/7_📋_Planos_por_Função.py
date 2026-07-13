@@ -59,16 +59,20 @@ def render_tabela(departamento, secao, colunas, titulo):
     else:
         df = pd.DataFrame(columns=colunas)
     
+    # Usar uma chave única por departamento/secao
+    editor_key = f"editor_{departamento}_{secao}"
+    
     edited = st.data_editor(
         df,
         num_rows="dynamic",
         width="stretch",
         hide_index=True,
-        key=f"{departamento}_{secao}",
+        key=editor_key,
         column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas}
     )
     
-    if edited is not None:
+    # Atualizar dados apenas se o editor foi modificado
+    if edited is not None and not edited.equals(df):
         edited = edited.fillna("")
         novos_dados = []
         for _, row in edited.iterrows():
@@ -83,7 +87,7 @@ def render_tabela(departamento, secao, colunas, titulo):
                 novos_dados.append(item)
         
         data["departamentos"][departamento][secao] = novos_dados
-
+        
 # ========== FUNÇÕES DE IA ==========
 def gerar_plano_departamento_ia(departamento):
     """Gera plano completo para um departamento usando IA"""
