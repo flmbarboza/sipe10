@@ -142,6 +142,7 @@ with col_gerar3:
         st.rerun()
 
 # Processar geração do BMC
+# Processar geração do BMC
 if gerar_bmc:
     if not descricao_negocio and not empresa_nome:
         st.warning("⚠️ Por favor, preencha pelo menos a descrição do negócio ou o nome da empresa.")
@@ -201,26 +202,28 @@ if gerar_bmc:
                     else:
                         dados = json.loads(conteudo)
                     
+                    # CORREÇÃO: Substituir todos os blocos, mesmo se já tiverem conteúdo
                     blocos_atualizados = 0
                     for chave, _, _ in BLOCOS:
-                        if chave in dados and dados[chave]:
-                            if not data["bmc"].get(chave, []):
-                                data["bmc"][chave] = dados[chave]
-                                blocos_atualizados += 1
+                        if chave in dados and dados[chave] and isinstance(dados[chave], list):
+                            # Substituir o conteúdo do bloco
+                            data["bmc"][chave] = dados[chave]
+                            blocos_atualizados += 1
                     
                     if blocos_atualizados > 0:
                         st.success(f"✅ {blocos_atualizados} blocos do BMC foram preenchidos pela IA!")
                         st.rerun()
                     else:
-                        st.info("ℹ️ Todos os blocos já estão preenchidos. Use 'Limpar BMC' para recomeçar.")
+                        st.warning("⚠️ A IA não retornou dados válidos para nenhum bloco. Tente novamente.")
+                        st.code(conteudo[:500])
                         
                 except json.JSONDecodeError as e:
                     st.error(f"❌ Erro ao parsear resposta da IA: {str(e)}")
-                    st.code(conteudo)
+                    st.code(conteudo[:500])
                     
             except Exception as e:
                 st.error(f"❌ Erro ao gerar BMC: {str(e)}")
-
+                
 st.divider()
 
 # ========== EXIBIÇÃO DOS BLOCOS COM DATA_EDITOR ==========
