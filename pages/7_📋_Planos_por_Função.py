@@ -143,17 +143,24 @@ def render_tabela(dados, colunas, titulo, chave, depto):
     """Renderiza uma tabela editável genérica"""
     st.markdown(f"**{titulo}**")
     
+    # Garantir que dados seja uma lista
+    if not dados:
+        dados = []
+    
+    # Criar DataFrame com os dados existentes
     if dados:
         df = pd.DataFrame(dados)
         # Garantir que todas as colunas existam
         for col in colunas:
             if col not in df.columns:
                 df[col] = ""
+        # Garantir que as colunas estejam na ordem correta
+        df = df[colunas]
     else:
         df = pd.DataFrame(columns=colunas)
     
-    df_hash = hash(str(df.to_dict())) if not df.empty else 0
-    editor_key = f"{depto}_{chave}_{df_hash}"
+    # Usar uma chave fixa baseada no departamento e chave, não no conteúdo
+    editor_key = f"{depto}_{chave}_editor"
     
     edited = st.data_editor(
         df,
@@ -161,7 +168,8 @@ def render_tabela(dados, colunas, titulo, chave, depto):
         use_container_width=True,
         hide_index=True,
         key=editor_key,
-        column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas}
+        column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas},
+        height=200  # Aumentar altura para visualizar melhor
     )
     
     if edited is not None:
@@ -181,7 +189,7 @@ def render_tabela(dados, colunas, titulo, chave, depto):
         if novos_dados != dados:
             return novos_dados
     return dados
-
+    
 # ========== TABS POR DEPARTAMENTO ==========
 tabs = st.tabs(DEPARTAMENTOS)
 
