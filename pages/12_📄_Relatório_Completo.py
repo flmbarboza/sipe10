@@ -297,23 +297,45 @@ def build_markdown():
             for depto, info in data["departamentos"].items():
                 for rec in info.get("recursos", []):
                     if rec.get("Recurso") and rec.get("Valor estimado"):
+                        # CORREÇÃO: Limpar o valor para extrair apenas o número
+                        valor_str = str(rec.get("Valor estimado", "0"))
+                        # Remover "R$", pontos, espaços e substituir vírgula por ponto
+                        valor_limpo = valor_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                        try:
+                            valor = float(valor_limpo)
+                        except:
+                            valor = 0
                         custos_departamentos.append({
                             "Departamento": depto,
                             "Recurso": rec.get("Recurso"),
-                            "Valor": rec.get("Valor estimado")
+                            "Valor": valor
                         })
         
         if custos_departamentos:
             md += "### Custos Consolidados por Departamento\n"
             for c in custos_departamentos:
-                md += f"- {c['Departamento']} - {c['Recurso']}: R$ {c['Valor']}\n"
+                md += f"- {c['Departamento']} - {c['Recurso']}: R$ {c['Valor']:,.2f}\n"
             md += "\n"
         
         # Indicadores Financeiros
         md += "### Indicadores Financeiros\n"
-        total_receitas = sum([float(r.get("Valor", 0)) for r in orc.get("receitas", [])])
-        total_custos = sum([float(c.get("Valor", 0)) for c in custos_departamentos])
-        total_investimentos = sum([float(i.get("Valor", 0)) for i in orc.get("investimentos", [])])
+        total_receitas = 0
+        for r in orc.get("receitas", []):
+            try:
+                valor_str = str(r.get("Valor", "0")).replace("R$", "").replace(".", "").replace(",", ".").strip()
+                total_receitas += float(valor_str)
+            except:
+                pass
+        
+        total_custos = sum([c["Valor"] for c in custos_departamentos])
+        
+        total_investimentos = 0
+        for i in orc.get("investimentos", []):
+            try:
+                valor_str = str(i.get("Valor", "0")).replace("R$", "").replace(".", "").replace(",", ".").strip()
+                total_investimentos += float(valor_str)
+            except:
+                pass
         
         md += f"- **Receita Total:** R$ {total_receitas:,.2f}\n"
         md += f"- **Custo Total:** R$ {total_custos:,.2f}\n"
@@ -327,8 +349,6 @@ def build_markdown():
         md += "\n"
     else:
         md += "*Nenhum dado de orçamento encontrado.*\n\n"
-
-    md += "---\n\n"
 
     # ========== 9. MONITORAMENTO ==========
     md += "## 9. Monitoramento\n\n"
