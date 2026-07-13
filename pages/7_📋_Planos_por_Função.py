@@ -154,13 +154,13 @@ def render_tabela(dados, colunas, titulo, chave, depto):
         for col in colunas:
             if col not in df.columns:
                 df[col] = ""
-        # Garantir que as colunas estejam na ordem correta
-        df = df[colunas]
     else:
         df = pd.DataFrame(columns=colunas)
     
-    # Usar uma chave fixa baseada no departamento e chave, não no conteúdo
-    editor_key = f"{depto}_{chave}_editor"
+    # Usar uma chave única baseada no departamento + chave + timestamp do conteúdo
+    import time
+    content_hash = hash(str(dados)) if dados else 0
+    editor_key = f"{depto}_{chave}_{content_hash}"
     
     edited = st.data_editor(
         df,
@@ -169,7 +169,7 @@ def render_tabela(dados, colunas, titulo, chave, depto):
         hide_index=True,
         key=editor_key,
         column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas},
-        height=200  # Aumentar altura para visualizar melhor
+        height=200
     )
     
     if edited is not None:
