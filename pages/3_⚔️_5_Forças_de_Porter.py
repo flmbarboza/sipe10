@@ -276,6 +276,12 @@ with col_export1:
             texto += f"  Observações: {dados['notas'] or '(vazio)'}\n\n"
         st.code(texto, language="markdown")
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa > Análise SWOT", width="stretch"):
+        st.switch_page("pages/4_🎯_Análise_SWOT.py")
+        
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com as 5 Forças de Porter")
 
