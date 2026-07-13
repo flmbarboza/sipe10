@@ -593,32 +593,14 @@ with col3:
         st.code(markdown_texto, language="markdown")
 
 st.divider()
-st.divider()
 st.subheader("🤖 Validação final com a IA")
 st.caption(
-    "Peça uma revisão geral do planejamento: consistência entre as seções, lacunas e sugestões de melhoria."
+    "A IA vai analisar todo o planejamento estratégico e apontar inconsistências, lacunas, "
+    "incoerências e problemas de gestão. Receba um diagnóstico completo do seu planejamento."
 )
 
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", width="stretch"):
-        st.session_state.messages_relatorio = []
-        st.rerun()
-
-if "messages_relatorio" not in st.session_state:
-    st.session_state.messages_relatorio = []
-
-for msg in st.session_state.messages_relatorio:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre o relatório..."):
-    st.session_state.messages_relatorio.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
+if st.button("🔍 Executar Revisão Completa do Planejamento", width="stretch"):
+    with st.spinner("🔄 Analisando todo o planejamento estratégico..."):
         try:
             from openai import OpenAI
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -626,56 +608,108 @@ if pergunta := st.chat_input("Pergunte ao assistente sobre o relatório..."):
             empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
             empresa_setor = data.get("empresa", {}).get("setor", "não informado")
             
-            context = f"""
-            RELATÓRIO COMPLETO DO PLANEJAMENTO ESTRATÉGICO
-            
+            # Coletar resumo das seções
+            resumo = f"""
             EMPRESA: {empresa_nome}
             SETOR: {empresa_setor}
             
-            O relatório contém as seguintes seções:
-            1. Dados da Empresa
-            2. Business Model Canvas
-            3. Análise PESTEL
-            4. 5 Forças de Porter
-            5. Análise SWOT
-            6. Planejamento Estratégico (MVV, SWOT Cruzada, Objetivos)
-            7. Plano de Ação 5W2H
-            8. Planos por Função (Departamentais)
-            9. Orçamento
-            10. Monitoramento
-            11. Revisão Estratégica
-            12. Painel de Controle
+            DADOS DA EMPRESA:
+            - Nome: {data.get('empresa', {}).get('nome', 'Não informado')}
+            - Setor: {data.get('empresa', {}).get('setor', 'Não informado')}
+            - Cidade: {data.get('empresa', {}).get('cidade_estado', 'Não informado')}
             
-            {markdown_texto[:8000]}
+            BUSINESS MODEL CANVAS:
+            {chr(10).join([f"- {k}: {v}" for k, v in data.get('bmc', {}).items() if v]) if data.get('bmc') else 'Não preenchido'}
+            
+            ANÁLISE PESTEL:
+            {chr(10).join([f"- {cat}: {len([i for i in itens if i.get('descricao')])} itens" for cat, itens in data.get('pestel', {}).items()]) if data.get('pestel') else 'Não preenchido'}
+            
+            SWOT:
+            - Forças: {len([i for i in data.get('swot', {}).get('forcas', []) if i.get('descricao')])}
+            - Fraquezas: {len([i for i in data.get('swot', {}).get('fraquezas', []) if i.get('descricao')])}
+            - Oportunidades: {len([i for i in data.get('swot', {}).get('oportunidades', []) if i.get('descricao')])}
+            - Ameaças: {len([i for i in data.get('swot', {}).get('ameacas', []) if i.get('descricao')])}
+            
+            MVV:
+            - Missão: {data.get('mvv', {}).get('missao', 'Não definida')}
+            - Visão: {data.get('mvv', {}).get('visao', 'Não definida')}
+            - Valores: {len(data.get('mvv', {}).get('valores', []))} valores definidos
+            
+            OBJETIVOS ESTRATÉGICOS:
+            {len([o for o in data.get('objetivos', []) if o.get('objetivo')])} objetivos definidos
+            
+            PLANO DE AÇÃO 5W2H:
+            {len([a for a in data.get('acao_5w2h', []) if a.get('what')])} ações definidas
+            
+            PLANOS DEPARTAMENTAIS:
+            {len(data.get('departamentos', {}))} departamentos
             """
             
-            mensagens = [
-                {"role": "system", "content": f"""Você é um consultor sênior de estratégia empresarial revisando um planejamento estratégico completo.
-
-{context}
-
-Responda em português do Brasil. Aponte, de forma objetiva:
-(1) inconsistências entre as seções
-(2) lacunas importantes não preenchidas
-(3) até 5 recomendações de melhoria"""}
-            ] + st.session_state.messages_relatorio[:-1]
+            prompt = f"""
+            Você é um consultor sênior de estratégia empresarial especializado em diagnóstico e revisão de planejamentos estratégicos.
+            
+            {resumo}
+            
+            Analise criticamente TODO o planejamento estratégico apresentado acima e forneça um diagnóstico completo.
+            
+            Sua análise deve abordar OBRIGATORIAMENTE:
+            
+            1. INCONSISTÊNCIAS - identifique contradições entre as diferentes seções do planejamento
+               - Exemplo: objetivo estratégico que não está alinhado com a missão
+               - Exemplo: ação planejada que não tem relação com os objetivos
+               - Exemplo: oportunidade identificada na SWOT que não é aproveitada nos objetivos
+            
+            2. LACUNAS - identifique o que está faltando ou incompleto
+               - Seções vazias ou muito superficiais
+               - Objetivos sem KPIs ou prazos definidos
+               - Ações sem responsáveis ou prazos
+               - Departamentos sem planos de ação
+            
+            3. INCOERÊNCIAS - identifique elementos que não fazem sentido juntos
+               - Exemplo: estratégias de crescimento com orçamento restritivo
+               - Exemplo: alta competitividade (Porter) sem ações defensivas
+               - Exemplo: oportunidades externas que não são aproveitadas
+            
+            4. PROBLEMAS DE GESTÃO - identifique problemas de governança e execução
+               - Falta de responsáveis claros
+               - Prazos irrealistas
+               - Indicadores sem metas definidas
+               - Riscos sem planos de mitigação
+            
+            5. RECOMENDAÇÕES PRIORITÁRIAS - liste as ações mais urgentes para corrigir os problemas identificados
+               - Máximo de 5 recomendações, por ordem de prioridade
+               - Cada recomendação deve ser acionável e específica
+            
+            Seja rigoroso, crítico e objetivo. Não seja complacente.
+            Aponte problemas reais que comprometem a execução do planejamento.
+            
+            Formate sua resposta como um relatório estruturado com os 5 tópicos acima.
+            """
             
             response = client.chat.completions.create(
                 model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
+                messages=[
+                    {"role": "system", "content": "Você é um consultor sênior de estratégia empresarial. Seja rigoroso, crítico e objetivo. Responda em português do Brasil."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000
             )
             
             resposta = response.choices[0].message.content
-            st.session_state.messages_relatorio.append({"role": "assistant", "content": resposta})
+            st.session_state["revisao_ia"] = resposta
             
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
         except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
+            st.error(f"❌ Erro ao processar a revisão: {str(e)}")
 
-st.divider()
+if "revisao_ia" in st.session_state:
+    st.markdown("### 📋 Diagnóstico do Planejamento")
+    st.markdown(st.session_state["revisao_ia"])
+    
+    if st.button("🗑️ Limpar Revisão", width="stretch"):
+        del st.session_state["revisao_ia"]
+        st.rerun()
+        
 st.info(
     "💡 Este relatório consolida todas as 11 seções do planejamento estratégico na ordem correta: "
     "Início, BMC, PESTEL, Porter, SWOT, Planejamento Estratégico, Plano de Ação, Planos por Função, "
