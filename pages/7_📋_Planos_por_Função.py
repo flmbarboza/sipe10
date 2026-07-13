@@ -140,55 +140,51 @@ def gerar_plano_departamento_ia(departamento):
 
 # ========== FUNÇÕES DE RENDERIZAÇÃO ==========
 def render_tabela(dados, colunas, titulo, chave, depto):
-    """Renderiza uma tabela editável genérica"""
+    """Renderiza uma tabela editável e salva automaticamente os dados."""
+
     st.markdown(f"**{titulo}**")
-    
-    # Garantir que dados seja uma lista
-    if not dados:
-        dados = []
-    
-    # Criar DataFrame com os dados existentes
+
+    # Cria o DataFrame garantindo todas as colunas
     if dados:
         df = pd.DataFrame(dados)
-        # Garantir que todas as colunas existam
-        for col in colunas:
-            if col not in df.columns:
-                df[col] = ""
     else:
         df = pd.DataFrame(columns=colunas)
-    
-    # Usar uma chave única baseada no departamento + chave + timestamp do conteúdo
-    import time
-    content_hash = hash(str(dados)) if dados else 0
-    editor_key = f"{depto}_{chave}_{content_hash}"
-    
+
+    for col in colunas:
+        if col not in df.columns:
+            df[col] = ""
+
+    # Editor
     edited = st.data_editor(
         df,
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
-        key=editor_key,
-        column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas},
-        height=200
+        key=f"{depto}_{chave}",
+        column_config={
+            col: st.column_config.TextColumn(col, width="large")
+            for col in colunas
+        },
+        height=220
     )
-    
-    if edited is not None:
-        edited = edited.fillna("")
-        novos_dados = []
-        for _, row in edited.iterrows():
-            item = {}
-            valido = False
-            for col in colunas:
-                valor = str(row.get(col, "")).strip()
-                item[col] = valor
-                if valor and not valido:
-                    valido = True
-            if valido:
-                novos_dados.append(item)
-        
-        if novos_dados != dados:
-            return novos_dados
-    return dados
+
+    # Salva imediatamente
+    novos_dados = (
+        edited
+        .fillna("")
+        .replace(pd.NA, "")
+        .to_dict("records")
+    )
+
+    # Remove linhas completamente vazias
+    novos_dados = [
+        linha
+        for linha in novos_dados
+        if any(str(v).strip() for v in linha.values())
+    ]
+
+    # Atualiza o objeto data
+    data["departamentos"][depto][chave] = novos_dados
     
 # ========== TABS POR DEPARTAMENTO ==========
 tabs = st.tabs(DEPARTAMENTOS)
