@@ -391,20 +391,26 @@ st.divider()
 # ========== VISUALIZAÇÃO COMPLETA DO CANVAS ==========
 st.subheader("📊 Visualização Completa do Business Model Canvas")
 
-# Criar um DataFrame com todos os blocos
+# Criar um dicionário com os itens
 canvas_data = {}
 for chave, titulo, desc in BLOCOS:
     itens = data["bmc"].get(chave, [])
-    canvas_data[titulo] = "\n".join([f"• {item}" for item in itens]) if itens else "_(vazio)_"
+    if itens and isinstance(itens, list):
+        # Juntar os itens com quebra de linha
+        canvas_data[titulo] = "\n".join([f"• {item}" for item in itens if item])
+    else:
+        canvas_data[titulo] = "_(vazio)_"
 
-df_canvas = pd.DataFrame([canvas_data]).T
-df_canvas.columns = ["Conteúdo"]
+# Criar DataFrame com os dados
+df_canvas = pd.DataFrame(list(canvas_data.items()), columns=["Bloco", "Conteúdo"])
 
 st.dataframe(
     df_canvas,
     width="stretch",
     height=400,
+    hide_index=True,
     column_config={
+        "Bloco": st.column_config.TextColumn("Bloco", width="medium"),
         "Conteúdo": st.column_config.TextColumn("Conteúdo", width="large")
     }
 )
