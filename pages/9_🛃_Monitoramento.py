@@ -354,6 +354,12 @@ if st.button("🤖 Gerar Relatório Executivo", use_container_width=True):
         except Exception as e:
             st.error(f"❌ Erro ao gerar relatório: {str(e)}")
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa", width="stretch"):
+        st.switch_page("pages/10_🔄_Revisão.py")
+        
 # ========== ASSISTENTE IA ==========
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com Monitoramento")
