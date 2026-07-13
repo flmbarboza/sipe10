@@ -447,6 +447,13 @@ with col_export2:
 
 st.success("✅ Todos os blocos são salvos automaticamente. Use a página 'Relatório Completo' para exportar tudo.")
 
+
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa: Análise PESTEL", width="stretch"):
+        st.switch_page("pages/2_🌍_Análise_PESTEL.py")
+
 # ========== ASSISTENTE IA PARA AJUDA ==========
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com o Business Model Canvas")
@@ -510,11 +517,3 @@ Responda em português do Brasil, de forma prática e objetiva."""}
                 
         except Exception as e:
             st.error(f"❌ Erro: {str(e)}")
-
-st.divider()
-
-# ========== BOTÃO PRÓXIMA ETAPA ==========
-col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
-with col_prox2:
-    if st.button("➡️ Próxima Etapa: Análise PESTEL", width="stretch"):
-        st.switch_page("pages/2_🌍_Análise_PESTEL.py")
