@@ -59,7 +59,42 @@ def render_tabela(departamento, secao, colunas, titulo):
     else:
         df = pd.DataFrame(columns=colunas)
     
-    # Usar uma chave única por departamento/secao
+    # Configuração de colunas com opções predefinidas
+    column_config = {}
+    for col in colunas:
+        if col == "Prioridade":
+            column_config[col] = st.column_config.SelectboxColumn(
+                col,
+                options=["Alta", "Média", "Baixa"],
+                width="large"
+            )
+        elif col == "Status" or col == "Situação":
+            column_config[col] = st.column_config.SelectboxColumn(
+                col,
+                options=["Não iniciado", "Em andamento", "Concluído", "Atrasado"],
+                width="large"
+            )
+        elif col == "Probabilidade":
+            column_config[col] = st.column_config.SelectboxColumn(
+                col,
+                options=["Baixa", "Média", "Alta"],
+                width="large"
+            )
+        elif col == "Impacto":
+            column_config[col] = st.column_config.SelectboxColumn(
+                col,
+                options=["Baixo", "Médio", "Alto"],
+                width="large"
+            )
+        elif col == "Tipo":
+            column_config[col] = st.column_config.SelectboxColumn(
+                col,
+                options=["Financeiro", "Humano", "Material", "Tecnológico", "Outro"],
+                width="large"
+            )
+        else:
+            column_config[col] = st.column_config.TextColumn(col, width="large")
+    
     editor_key = f"editor_{departamento}_{secao}"
     
     edited = st.data_editor(
@@ -68,14 +103,13 @@ def render_tabela(departamento, secao, colunas, titulo):
         width="stretch",
         hide_index=True,
         key=editor_key,
-        column_config={col: st.column_config.TextColumn(col, width="large") for col in colunas}
+        column_config=column_config
     )
     
-    # Atualizar dados apenas se o editor foi modificado
-    if edited is not None and not edited.equals(df):
-        edited = edited.fillna("")
+    if edited is not None:
+        edited_fill = edited.fillna("")
         novos_dados = []
-        for _, row in edited.iterrows():
+        for _, row in edited_fill.iterrows():
             item = {}
             valido = False
             for col in colunas:
@@ -86,8 +120,14 @@ def render_tabela(departamento, secao, colunas, titulo):
             if valido:
                 novos_dados.append(item)
         
-        data["departamentos"][departamento][secao] = novos_dados
+        dados_atuais = []
+        for item in dados:
+            if isinstance(item, dict):
+                dados_atuais.append(item)
         
+        if novos_dados != dados_atuais:
+            data["departamentos"][departamento][secao] = novos_dados
+            
 # ========== FUNÇÕES DE IA ==========
 def gerar_plano_departamento_ia(departamento):
     """Gera plano completo para um departamento usando IA"""
