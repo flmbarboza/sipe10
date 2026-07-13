@@ -318,6 +318,12 @@ if st.button("🔍 Gerar Insights do Planejamento", use_container_width=True):
 if "dashboard_insights" in st.session_state:
     st.markdown(st.session_state["dashboard_insights"])
 
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa > Gerar Relatório", width="stretch"):
+        st.switch_page("pages/12_📄_Relatório_Completo.py")
+        
 # ========== ASSISTENTE IA ==========
 st.divider()
 st.subheader("💬 Assistente IA - Ajuda com o Dashboard")
