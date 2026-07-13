@@ -593,27 +593,87 @@ with col3:
         st.code(markdown_texto, language="markdown")
 
 st.divider()
+st.divider()
 st.subheader("🤖 Validação final com a IA")
 st.caption(
     "Peça uma revisão geral do planejamento: consistência entre as seções, lacunas e sugestões de melhoria."
 )
 
-if st.button("Consultar IA — revisar relatório completo"):
-    system = (
-        "Você é um consultor sênior de estratégia empresarial revisando um planejamento estratégico completo. "
-        "Responda em português do Brasil. Aponte, de forma objetiva: (1) inconsistências entre as seções, "
-        "(2) lacunas importantes não preenchidas, (3) até 5 recomendações de melhoria."
-    )
-    prompt = (
-        "Revise o planejamento estratégico abaixo (em Markdown) e dê um feedback estruturado:\n\n"
-        + markdown_texto[:12000]
-    )
-    with st.spinner("Analisando o planejamento completo..."):
-        resposta = ask_claude(system, prompt, max_tokens=1200)
-    st.session_state["revisao_ia"] = resposta
+col_chat1, col_chat2 = st.columns([5, 1])
+with col_chat2:
+    if st.button("🗑️ Limpar Chat", width="stretch"):
+        st.session_state.messages_relatorio = []
+        st.rerun()
 
-if "revisao_ia" in st.session_state:
-    st.markdown(st.session_state["revisao_ia"])
+if "messages_relatorio" not in st.session_state:
+    st.session_state.messages_relatorio = []
+
+for msg in st.session_state.messages_relatorio:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+if pergunta := st.chat_input("Pergunte ao assistente sobre o relatório..."):
+    st.session_state.messages_relatorio.append({"role": "user", "content": pergunta})
+    
+    with st.chat_message("user"):
+        st.markdown(pergunta)
+    
+    with st.spinner("🤔 Pensando..."):
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            
+            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
+            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
+            
+            context = f"""
+            RELATÓRIO COMPLETO DO PLANEJAMENTO ESTRATÉGICO
+            
+            EMPRESA: {empresa_nome}
+            SETOR: {empresa_setor}
+            
+            O relatório contém as seguintes seções:
+            1. Dados da Empresa
+            2. Business Model Canvas
+            3. Análise PESTEL
+            4. 5 Forças de Porter
+            5. Análise SWOT
+            6. Planejamento Estratégico (MVV, SWOT Cruzada, Objetivos)
+            7. Plano de Ação 5W2H
+            8. Planos por Função (Departamentais)
+            9. Orçamento
+            10. Monitoramento
+            11. Revisão Estratégica
+            12. Painel de Controle
+            
+            {markdown_texto[:8000]}
+            """
+            
+            mensagens = [
+                {"role": "system", "content": f"""Você é um consultor sênior de estratégia empresarial revisando um planejamento estratégico completo.
+
+{context}
+
+Responda em português do Brasil. Aponte, de forma objetiva:
+(1) inconsistências entre as seções
+(2) lacunas importantes não preenchidas
+(3) até 5 recomendações de melhoria"""}
+            ] + st.session_state.messages_relatorio[:-1]
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=mensagens,
+                temperature=0.7
+            )
+            
+            resposta = response.choices[0].message.content
+            st.session_state.messages_relatorio.append({"role": "assistant", "content": resposta})
+            
+            with st.chat_message("assistant"):
+                st.markdown(resposta)
+                
+        except Exception as e:
+            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
 
 st.divider()
 st.info(
