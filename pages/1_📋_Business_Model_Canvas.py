@@ -237,6 +237,7 @@ itens_atuais = data["bmc"].get(chave, [])
 itens_atuais = [item for item in itens_atuais if item and item.strip()]
 data["bmc"][chave] = itens_atuais
 
+# Se estiver vazio, iniciar com uma linha vazia
 if not itens_atuais:
     itens_atuais = [""]
 
@@ -383,7 +384,7 @@ with col_avancar:
             st.rerun()
 
 # ============================================================
-# VISUALIZAÇÃO COMPLETA DO CANVAS
+# VISUALIZAÇÃO COMPLETA DO CANVAS - COM QUEBRA DE TEXTO
 # ============================================================
 st.divider()
 st.header("📊 Visualização Completa do Business Model Canvas")
@@ -395,6 +396,7 @@ for bloco in ETAPAS_BMC:
     itens = data["bmc"].get(chave_bloco, [])
 
     if itens:
+        # Juntar itens com quebra de linha para exibição completa
         conteudo = "\n".join([f"• {item}" for item in itens if item.strip()])
     else:
         conteudo = "_(não preenchido)_"
@@ -405,6 +407,8 @@ for bloco in ETAPAS_BMC:
     })
 
 df_canvas = pd.DataFrame(canvas_data)
+
+# Aplicar estilo para quebra de texto nas células
 st.dataframe(
     df_canvas,
     width="stretch",
