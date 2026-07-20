@@ -194,6 +194,7 @@ etapa_atual = st.session_state.bmc_etapa
 etapa = ETAPAS_BMC[etapa_atual]
 chave = etapa["chave"]
 garantir_bloco(chave)
+
 # ============================================================
 # BARRA DE PROGRESSO
 # ============================================================
@@ -201,6 +202,7 @@ progresso = (etapa_atual + 1) / len(ETAPAS_BMC)
 st.progress(progresso,text=f"Etapa {etapa_atual + 1} de {len(ETAPAS_BMC)}")
 
 st.divider()
+
 # ============================================================
 # TÍTULO DA ETAPA
 # ============================================================
@@ -224,13 +226,13 @@ with st.expander("📌 Exemplos", expanded=False):
         st.markdown(f"- {exemplo}")
 
 st.divider()
+
 # ============================================================
 # ÁREA DE PREENCHIMENTO
 # ============================================================
 st.subheader("✍️ Construa sua resposta")
 itens_atuais = data["bmc"].get(chave, [])
 
-# Caso não exista nenhum item
 if not itens_atuais:
     itens_atuais = [""]
 
@@ -240,7 +242,6 @@ for i, item in enumerate(itens_atuais):
     if valor.strip():
         novos_itens.append(valor.strip())
 
-# Atualiza automaticamente
 if novos_itens != data["bmc"].get(chave, []):
     data["bmc"][chave] = novos_itens
 
@@ -301,14 +302,14 @@ if st.session_state.get(f"mostrar_ia_{chave}", False):
     if not empresa_nome:
         st.warning(
             "⚠️ Cadastre primeiro os dados da empresa na página inicial "
-            "para obter sugestões personalizadas.")
+            "para obter sugestões personalizadas."
+        )
     else:
         contexto_empresa = f"""
         EMPRESA: {empresa_nome}
         SETOR: {empresa_setor or "Não informado"}
-        LOCALIZAÇÃO:{empresa_cidade or "Não informado"}
+        LOCALIZAÇÃO: {empresa_cidade or "Não informado"}
         """
-
 
         prompt_ia = f"""
 Você é um consultor especialista em Business Model Canvas.
@@ -326,35 +327,32 @@ Gere sugestões práticas e realistas. Regras:
 Responda em português do Brasil.
 """
 
-        if st.button("✨ Gerar sugestões",key=f"gerar_sugestoes_{chave}"):
+        if st.button("✨ Gerar sugestões", key=f"gerar_sugestoes_{chave}"):
             with st.spinner("🤔 Analisando o modelo de negócio..."):
                 try:
-                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"],base_url="https://openrouter.ai/api/v1")
+                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
                     response = client.chat.completions.create(
                         model="openai/gpt-oss-20b",
                         messages=[
                             {
                                 "role": "system",
-                                "content":
-                                "Você é um consultor experiente em estratégia empresarial."
+                                "content": "Você é um consultor experiente em estratégia empresarial e Business Model Canvas."
                             },
                             {
                                 "role": "user",
                                 "content": prompt_ia
-                            }],temperature=0.7)
-
-                    sugestao = response
-                    (
-                        response
-                        .choices[0]
-                        .message
-                        .content
+                            }
+                        ],
+                        temperature=0.7
                     )
+                    
+                    sugestao = response.choices[0].message.content
                     st.session_state[f"sugestao_ia_{chave}"] = sugestao
+                    st.rerun()
 
                 except Exception as e:
                     st.error(f"❌ Erro ao consultar IA: {str(e)}")
-        # Exibir resultado salvo
+        
         if st.session_state.get(f"sugestao_ia_{chave}"):
             st.markdown(st.session_state[f"sugestao_ia_{chave}"])
             st.info(
@@ -372,31 +370,27 @@ st.caption("Após construir cada etapa, visualize seu modelo de negócio complet
 canvas_data = []
 for bloco in ETAPAS_BMC:
     chave_bloco = bloco["chave"]
-    itens = data["bmc"].get(chave_bloco,[])
+    itens = data["bmc"].get(chave_bloco, [])
 
     if itens:
-        conteudo = "\n".join(
-            [
-                f"• {item}"
-                for item in itens
-                if item.strip()
-            ]
-        )
+        conteudo = "\n".join([f"• {item}" for item in itens if item.strip()])
     else:
         conteudo = "_(não preenchido)_"
-    canvas_data.append(
-        {
-            "Bloco": bloco["titulo"],
-            "Conteúdo": conteudo
-        }
-    )
+    
+    canvas_data.append({
+        "Bloco": bloco["titulo"],
+        "Conteúdo": conteudo
+    })
+
 df_canvas = pd.DataFrame(canvas_data)
-st.dataframe(df_canvas,width="stretch",height=500,hide_index=True,
+st.dataframe(
+    df_canvas,
+    width="stretch",
+    height=500,
+    hide_index=True,
     column_config={
-        "Bloco":
-            st.column_config.TextColumn("Bloco",width="medium"),
-        "Conteúdo":
-            st.column_config.TextColumn("Conteúdo",width="large")
+        "Bloco": st.column_config.TextColumn("Bloco", width="medium"),
+        "Conteúdo": st.column_config.TextColumn("Conteúdo", width="large")
     }
 )
 
@@ -412,7 +406,7 @@ with col_export1:
 
     for bloco in ETAPAS_BMC:
         titulo = bloco["titulo"]
-        itens = data["bmc"].get(bloco["chave"],[])
+        itens = data["bmc"].get(bloco["chave"], [])
         texto_canvas += f"{titulo}\n"
         if itens:
             for item in itens:
@@ -421,13 +415,16 @@ with col_export1:
             texto_canvas += "(não preenchido)\n"
         texto_canvas += "\n"
 
-    if st.button("📋 Mostrar Canvas em Texto",width="stretch"):
-        st.code(texto_canvas,language="markdown")
+    if st.button("📋 Mostrar Canvas em Texto", width="stretch"):
+        st.code(texto_canvas, language="markdown")
 
 with col_export2:
-    json_canvas = json.dumps(data["bmc"],indent=2,ensure_ascii=False)
-    st.download_button("⬇️ Baixar Canvas (.json)",data=json_canvas,
-        file_name="business_model_canvas.json",mime="application/json",
+    json_canvas = json.dumps(data["bmc"], indent=2, ensure_ascii=False)
+    st.download_button(
+        "⬇️ Baixar Canvas (.json)",
+        data=json_canvas,
+        file_name="business_model_canvas.json",
+        mime="application/json",
         width="stretch"
     )
 
@@ -436,24 +433,23 @@ with col_export2:
 # ============================================================
 st.divider()
 st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA sobre o Business Model Canvas")
-empresa = data.get("empresa",{})
-empresa_nome = empresa.get("nome","").strip()
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
 
 if not empresa_nome:
     st.warning("⚠️ Cadastre os dados da empresa para utilizar o assistente.")
 else:
     contexto_canvas = ""
-
     for bloco in ETAPAS_BMC:
-        itens = data["bmc"].get(bloco["chave"],[])
-        contexto_canvas += (f"\n{bloco['titulo']}:\n")
+        itens = data["bmc"].get(bloco["chave"], [])
+        contexto_canvas += f"\n{bloco['titulo']}:\n"
         for item in itens:
-            contexto_canvas += (
-                f"- {item}\n"
-            )
+            contexto_canvas += f"- {item}\n"
+    
     contexto = f"""
 EMPRESA: {empresa_nome}
-SETOR: {empresa.get("setor","Não informado")}
+SETOR: {empresa.get("setor", "Não informado")}
 BUSINESS MODEL CANVAS ATUAL: {contexto_canvas}
 """
     system_prompt = """
@@ -466,16 +462,13 @@ com linguagem simples e objetiva.
 """
     render_chat(
         messages_key="messages_bmc",
-        placeholder=
-        "Pergunte ao assistente sobre seu Canvas...",
+        placeholder="Pergunte ao assistente sobre seu Canvas...",
         system_prompt=system_prompt,
         context=contexto
     )
 
-# ============================================================
-# PRÓXIMA ETAPA
-# ============================================================
-col1, col2, col3 = st.columns([1,2,1])
-with col2:
-    if st.button("➡️ Próxima Etapa: Análise PESTEL",width="stretch"):
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Vamos para a Próxima Etapa? > Análise PESTEL", width="stretch"):
         st.switch_page("pages/2_🌍_Análise_PESTEL.py")
