@@ -128,41 +128,74 @@ st.info(
 
 st.divider()
 
-contexto = f"""
-SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+empresa = data.get("empresa", {})
 
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-PROGRESSO: {progresso:.0f}%
-SEÇÕES PREENCHIDAS: {preenchidas}/{total_secoes}
-TOTAL DE AÇÕES: {total_acoes}
-DEPARTAMENTOS: {len(data.get("departamentos", {}))}
-"""
+empresa_nome = empresa.get("nome", "").strip()
+empresa_setor = empresa.get("setor", "").strip()
+empresa_cidade = empresa.get("cidade_estado", "").strip()
+empresa_responsavel = empresa.get("responsavel", "").strip()
 
-system_prompt = """
-Você é um assistente especialista em Planejamento Estratégico.
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
 
-O SIPE possui as seguintes seções:
+    contexto = f"""
+    SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
 
-1. Business Model Canvas
-2. Análise PESTEL
-3. 5 Forças de Porter
-4. Análise SWOT
-5. Planejamento Estratégico
-6. Plano de Ação 5W2H
-7. Planos por Função
-8. Orçamento
-9. Monitoramento
-10. Revisão Estratégica
-11. Painel de Controle
-12. Relatório Completo
+    EMPRESA:
+    {empresa_nome}
 
-Responda em português do Brasil, de forma prática e objetiva.
-"""
+    SETOR:
+    {empresa_setor or "Não informado"}
 
-render_chat(
-    messages_key="messages_home",
-    placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
-    system_prompt=system_prompt,
-    context=contexto,
-)
+    LOCALIZAÇÃO:
+    {empresa_cidade or "Não informado"}
+
+    RESPONSÁVEL:
+    {empresa_responsavel or "Não informado"}
+
+    PROGRESSO DO PLANEJAMENTO:
+    {progresso:.0f}%
+
+    SEÇÕES PREENCHIDAS:
+    {preenchidas}/{total_secoes}
+
+    TOTAL DE AÇÕES:
+    {len([a for a in data.get('acao_5w2h', []) if a.get('what')])}
+
+    DEPARTAMENTOS:
+    {len(data.get('departamentos', {}))}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Planejamento Estratégico.
+
+    Auxilie o usuário na construção do planejamento estratégico da empresa.
+
+    O SIPE possui as seguintes etapas:
+
+    1. Business Model Canvas
+    2. Análise PESTEL
+    3. 5 Forças de Porter
+    4. Análise SWOT
+    5. Planejamento Estratégico
+    6. Plano de Ação 5W2H
+    7. Planos por Função
+    8. Orçamento
+    9. Monitoramento
+    10. Revisão Estratégica
+    11. Painel de Controle
+    12. Relatório Completo
+
+    Responda em português do Brasil, de forma prática e objetiva.
+    """
+
+    render_chat(
+        messages_key="messages_home",
+        placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
