@@ -287,15 +287,6 @@ for indice in range(len(st.session_state[session_key])):
                 data["bmc"][chave] = st.session_state[session_key]
                 st.rerun()
 
-# Remover linhas vazias (exceto a primeira se for a única)
-itens_sem_vazio = [item for item in st.session_state[session_key] if item.strip()]
-if itens_sem_vazio:
-    st.session_state[session_key] = itens_sem_vazio
-    data["bmc"][chave] = itens_sem_vazio
-elif len(st.session_state[session_key]) > 0 and not st.session_state[session_key][0].strip():
-    # Se só tem uma linha vazia, mantém
-    pass
-
 col_add1, col_add2 = st.columns([1,3])
 with col_add2:
     if st.button(
