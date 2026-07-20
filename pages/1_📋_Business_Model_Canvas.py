@@ -197,8 +197,12 @@ chave = etapa["chave"]
 garantir_bloco(chave)
 
 session_key = f"items_{chave}"
+
+# CORREÇÃO: Inicializar com lista de dicionários
 if session_key not in st.session_state:
     itens = data["bmc"].get(chave, [])
+    if not itens:
+        itens = [""]
     st.session_state[session_key] = [
         {
             "id": uuid.uuid4().hex,
@@ -206,16 +210,19 @@ if session_key not in st.session_state:
         }
         for texto in itens
     ]
-
-# Se não existir nenhum item
-if len(st.session_state[session_key]) == 0:
-    st.session_state[session_key] = [
-        {
-            "id": uuid.uuid4().hex,
-            "texto": ""
-        }
-    ]
-    
+else:
+    # Garantir que os itens estejam no formato correto (dicionários)
+    if isinstance(st.session_state[session_key], list):
+        # Verificar se já está no formato correto
+        if st.session_state[session_key] and isinstance(st.session_state[session_key][0], str):
+            # Converter de string para dicionário
+            st.session_state[session_key] = [
+                {
+                    "id": uuid.uuid4().hex,
+                    "texto": texto
+                }
+                for texto in st.session_state[session_key]
+            ]    
 # ============================================================
 # BARRA DE PROGRESSO
 # ============================================================
@@ -378,8 +385,12 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
-                                # Atualiza os dados permanentes
-                                data["bmc"][chave] = itens_existentes
+                                # Atualiza o formato antigo utilizado pelo restante do sistema
+                                data["bmc"][chave] = [
+                                    item["texto"] if isinstance(item, dict) else str(item)
+                                    for item in st.session_state[session_key]
+                                    if (isinstance(item, dict) and item["texto"].strip()) or (isinstance(item, str) and item.strip())
+                                ]
                                 # Converte para o formato usado pela interface
                                 st.session_state[session_key] = [
                                     {
