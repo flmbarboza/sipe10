@@ -209,6 +209,6 @@ st.divider()
   #      st.switch_page("pages/1_📋_Business_Model_Canvas.py")
 st.page_link(
     "pages/1_📋_Business_Model_Canvas.py",
-    label="➡️ Próxima Etapa > Canvas",
+    label="Próxima Etapa > Canvas",
     icon="➡️"
 )
