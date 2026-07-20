@@ -4,6 +4,7 @@ import json
 import re
 from datetime import datetime
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Revisão Estratégica", page_icon="🔄", layout="wide")
@@ -86,7 +87,6 @@ def gerar_revisao_ia():
         empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
         empresa_setor = data.get("empresa", {}).get("setor", "não informado")
         
-        # Coletar dados atuais
         swot_atual = ""
         if "swot" in data:
             for chave, itens in data["swot"].items():
@@ -335,7 +335,7 @@ col_ia1, col_ia2 = st.columns([3, 1])
 with col_ia1:
     st.caption("A IA vai analisar todo o planejamento e sugerir ajustes estratégicos")
 with col_ia2:
-    if st.button("🤖 Revisar Estratégia", use_container_width=True):
+    if st.button("🤖 Revisar Estratégia", width="stretch"):
         with st.spinner("Analisando planejamento e gerando recomendações..."):
             resultado = gerar_revisao_ia()
             if resultado:
@@ -380,8 +380,7 @@ if "revisao_ia_resultado" in st.session_state:
         st.markdown("**📝 Recomendações Gerais:**")
         st.info(resultado["recomendacoes_gerais"])
     
-    if st.button("Aplicar Recomendações", use_container_width=True):
-        # Aplicar recomendações automaticamente
+    if st.button("Aplicar Recomendações", width="stretch"):
         if resultado.get("novas_oportunidades") and "swot" in data:
             existentes = {item["descricao"].lower().strip() for item in data["swot"].get("oportunidades", [])}
             for item in resultado["novas_oportunidades"]:
@@ -404,8 +403,7 @@ with st.expander("📜 Histórico de Revisões"):
     if "historico" not in data["revisao"]:
         data["revisao"]["historico"] = []
     
-    # Salvar revisão atual
-    if st.button("📌 Salvar Revisão Atual", use_container_width=True):
+    if st.button("📌 Salvar Revisão Atual", width="stretch"):
         data["revisao"]["historico"].append({
             "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "resultados": len(data["revisao"].get("resultados", [])),
@@ -419,73 +417,50 @@ with st.expander("📜 Histórico de Revisões"):
         df_historico = pd.DataFrame(data["revisao"]["historico"])
         st.dataframe(df_historico, use_container_width=True, hide_index=True)
 
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    REVISÃO ESTRATÉGICA:
+    - Resultados: {len(data['revisao'].get('resultados', []))}
+    - Objetivos Atingidos: {len(data['revisao'].get('objetivos_atingidos', []))}
+    - Objetivos Não Atingidos: {len(data['revisao'].get('objetivos_nao_atingidos', []))}
+    - Lições Aprendidas: {data['revisao'].get('licoes_aprendidas', 'Não informado')[:100]}
+    - Mudanças Registradas: {len([k for k, v in data['revisao'].get('mudancas', {}).items() if v])}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Revisão Estratégica.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Registrar resultados e lições aprendidas
+    - Identificar mudanças no ambiente
+    - Atualizar a SWOT e o Plano de Ação
+    - Aplicar recomendações estratégicas
+    - Manter o histórico de revisões
+    """
+
+    render_chat(
+        messages_key="messages_revisao",
+        placeholder="Pergunte ao assistente sobre a revisão estratégica...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Painel de Controle", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Painel de Controle", width="stretch"):
         st.switch_page("pages/11_📈_Painel_de_Controle.py")
-        
-# ========== ASSISTENTE IA ==========
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com a Revisão Estratégica")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_revisao = []
-        st.rerun()
-
-if "messages_revisao" not in st.session_state:
-    st.session_state.messages_revisao = []
-
-for msg in st.session_state.messages_revisao:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre a revisão estratégica..."):
-    st.session_state.messages_revisao.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            contexto = f"""
-            REVISÃO ESTRATÉGICA:
-            - Resultados: {len(data['revisao'].get('resultados', []))}
-            - Objetivos Atingidos: {len(data['revisao'].get('objetivos_atingidos', []))}
-            - Objetivos Não Atingidos: {len(data['revisao'].get('objetivos_nao_atingidos', []))}
-            - Lições Aprendidas: {data['revisao'].get('licoes_aprendidas', 'Não informado')[:100]}
-            - Mudanças Registradas: {len([k for k, v in data['revisao'].get('mudancas', {}).items() if v])}
-            """
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Revisão Estratégica.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_revisao[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_revisao.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
