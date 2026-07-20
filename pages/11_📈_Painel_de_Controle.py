@@ -4,6 +4,7 @@ import json
 import re
 from datetime import datetime
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Dashboard Executivo", page_icon="📊", layout="wide")
@@ -36,7 +37,7 @@ def contar_itens():
 
 def calcular_progresso():
     """Calcula o progresso geral do planejamento"""
-    total_secoes = 9  # BMC, PESTEL, Porter, SWOT, Objetivos, Ações, Departamentos, Financeiro, MVV
+    total_secoes = 9
     preenchidas = 0
     
     if data.get("bmc"):
@@ -85,7 +86,6 @@ def calcular_status_acoes():
     nao_iniciadas = 0
     atrasadas = 0
     
-    # Ações do 5W2H
     for acao in data.get("acao_5w2h", []):
         if acao.get("what"):
             total += 1
@@ -99,7 +99,6 @@ def calcular_status_acoes():
             else:
                 nao_iniciadas += 1
     
-    # Ações dos departamentos
     for depto in data.get("departamentos", {}).values():
         for acao in depto.get("acoes", []):
             if acao.get("Ação"):
@@ -153,7 +152,6 @@ st.subheader("📊 Progresso por Seção")
 col_prog1, col_prog2 = st.columns(2)
 
 with col_prog1:
-    # Dados de progresso por seção
     secao_status = {
         "Empresa": contagens["empresa"],
         "BMC": contagens["bmc"],
@@ -172,7 +170,6 @@ with col_prog1:
     st.dataframe(df_secoes, use_container_width=True, hide_index=True)
 
 with col_prog2:
-    # Gráfico de progresso
     df_progresso = pd.DataFrame({
         "Seção": list(secao_status.keys()),
         "Itens": list(secao_status.values())
@@ -188,7 +185,6 @@ if status_acoes["total"] > 0:
     col_status1, col_status2 = st.columns(2)
     
     with col_status1:
-        # Cards de status
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             st.metric("✅ Concluídas", status_acoes["concluidas"])
@@ -198,7 +194,6 @@ if status_acoes["total"] > 0:
             st.metric("⚠️ Atrasadas", status_acoes["atrasadas"])
     
     with col_status2:
-        # Gráfico de status
         df_status = pd.DataFrame({
             "Status": ["Concluídas", "Em andamento", "Não iniciadas", "Atrasadas"],
             "Quantidade": [status_acoes["concluidas"], status_acoes["andamento"], 
@@ -227,7 +222,6 @@ if data.get("departamentos"):
     df_depto = pd.DataFrame(depto_resumo)
     st.dataframe(df_depto, use_container_width=True, hide_index=True)
     
-    # Gráfico de ações por departamento
     df_depto_grafico = df_depto.set_index("Departamento")[["Objetivos", "Ações", "Indicadores"]]
     st.bar_chart(df_depto_grafico)
 else:
@@ -268,7 +262,7 @@ st.divider()
 # ---------- INSIGHTS DA IA ----------
 st.subheader("🤖 Insights da IA")
 
-if st.button("🔍 Gerar Insights do Planejamento", use_container_width=True):
+if st.button("🔍 Gerar Insights do Planejamento", width="stretch"):
     with st.spinner("Analisando o planejamento estratégico..."):
         try:
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -276,7 +270,6 @@ if st.button("🔍 Gerar Insights do Planejamento", use_container_width=True):
             empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
             empresa_setor = data.get("empresa", {}).get("setor", "não informado")
             
-            # Resumo do planejamento
             resumo = f"""
             EMPRESA: {empresa_nome}
             SETOR: {empresa_setor}
@@ -318,74 +311,51 @@ if st.button("🔍 Gerar Insights do Planejamento", use_container_width=True):
 if "dashboard_insights" in st.session_state:
     st.markdown(st.session_state["dashboard_insights"])
 
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    DASHBOARD EXECUTIVO:
+    - Progresso: {progresso:.0f}%
+    - Departamentos: {contagens['departamentos']}
+    - Objetivos: {contagens['objetivos']}
+    - Ações: {status_acoes['total']} (concluídas: {status_acoes['concluidas']})
+    - PESTEL: {contagens['pestel']} itens
+    - SWOT: {contagens['swot']} itens
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Planejamento Estratégico.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Compreender o progresso do planejamento
+    - Analisar métricas e indicadores
+    - Identificar próximas etapas prioritárias
+    - Tomar decisões baseadas em dados
+    - Manter o foco nos objetivos estratégicos
+    """
+
+    render_chat(
+        messages_key="messages_dashboard",
+        placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Gerar Relatório", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Gerar Relatório", width="stretch"):
         st.switch_page("pages/12_📄_Relatório_Completo.py")
-        
-# ========== ASSISTENTE IA ==========
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com o Dashboard")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_dashboard = []
-        st.rerun()
-
-if "messages_dashboard" not in st.session_state:
-    st.session_state.messages_dashboard = []
-
-for msg in st.session_state.messages_dashboard:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre o planejamento estratégico..."):
-    st.session_state.messages_dashboard.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            contexto = f"""
-            DASHBOARD EXECUTIVO:
-            - Progresso: {progresso:.0f}%
-            - Departamentos: {contagens['departamentos']}
-            - Objetivos: {contagens['objetivos']}
-            - Ações: {status_acoes['total']} (concluídas: {status_acoes['concluidas']})
-            - PESTEL: {contagens['pestel']} itens
-            - SWOT: {contagens['swot']} itens
-            """
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Planejamento Estratégico.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_dashboard[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_dashboard.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
