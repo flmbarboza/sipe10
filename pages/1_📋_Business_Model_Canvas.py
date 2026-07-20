@@ -237,25 +237,22 @@ st.markdown(
 
 garantir_bloco(chave)
 
-# sempre manter pelo menos um campo
-if len(data["bmc"][chave]) == 0:
-    data["bmc"][chave] = [""]
+# Inicializar session_state para os itens
+if f"items_{chave}" not in st.session_state:
+    st.session_state[f"items_{chave}"] = data["bmc"].get(chave, [])
+    if not st.session_state[f"items_{chave}"]:
+        st.session_state[f"items_{chave}"] = [""]
 
-# remove linhas completamente vazias (mantém uma)
-itens = [i for i in data["bmc"][chave] if i.strip()]
-
-if len(itens) == 0:
-    itens = [""]
-
-data["bmc"][chave] = itens
+# Sincronizar data com session_state
+data["bmc"][chave] = st.session_state[f"items_{chave}"]
 
 # Renderizar os campos
-for indice in range(len(data["bmc"][chave])):
+for indice in range(len(st.session_state[f"items_{chave}"])):
     widget_key = f"{chave}_{indice}"
     col1, col2 = st.columns([18,1], vertical_alignment="center")
 
     with col1:
-        valor_atual = data["bmc"][chave][indice]
+        valor_atual = st.session_state[f"items_{chave}"][indice]
         novo_valor = st.text_input(
             "",
             value=valor_atual,
@@ -264,17 +261,28 @@ for indice in range(len(data["bmc"][chave])):
             label_visibility="collapsed"
         )
         if novo_valor != valor_atual:
-            data["bmc"][chave][indice] = novo_valor
+            st.session_state[f"items_{chave}"][indice] = novo_valor
+            data["bmc"][chave] = st.session_state[f"items_{chave}"]
 
     with col2:
-        if len(data["bmc"][chave]) > 1:
+        if len(st.session_state[f"items_{chave}"]) > 1:
             if st.button(
                 "🗑️",
                 key=f"remover_{widget_key}",
                 use_container_width=True
             ):
-                data["bmc"][chave].pop(indice)
+                st.session_state[f"items_{chave}"].pop(indice)
+                data["bmc"][chave] = st.session_state[f"items_{chave}"]
                 st.rerun()
+
+# Remover linhas vazias (exceto a primeira se for a única)
+itens_sem_vazio = [item for item in st.session_state[f"items_{chave}"] if item.strip()]
+if itens_sem_vazio:
+    st.session_state[f"items_{chave}"] = itens_sem_vazio
+    data["bmc"][chave] = itens_sem_vazio
+elif len(st.session_state[f"items_{chave}"]) > 0 and not st.session_state[f"items_{chave}"][0].strip():
+    # Se só tem uma linha vazia, mantém
+    pass
 
 col_add1, col_add2 = st.columns([1,3])
 with col_add2:
@@ -283,9 +291,10 @@ with col_add2:
         key=f"novo_item_{chave}",
         use_container_width=True
     ):
-        data["bmc"][chave].append("")
+        st.session_state[f"items_{chave}"].append("")
+        data["bmc"][chave] = st.session_state[f"items_{chave}"]
         st.rerun()
-        
+
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
