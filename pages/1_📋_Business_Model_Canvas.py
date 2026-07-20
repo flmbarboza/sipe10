@@ -226,10 +226,10 @@ with st.expander("📌 Exemplos", expanded=False):
         st.markdown(f"- {exemplo}")
 
 st.divider()
+
 # ============================================================
 # ÁREA DE PREENCHIMENTO
 # ============================================================
-
 st.subheader("✍️ Construa sua resposta")
 st.markdown(
     "Digite uma ideia por linha. Não se preocupe em escrever perfeitamente agora. "
@@ -250,23 +250,24 @@ if len(itens) == 0:
 
 data["bmc"][chave] = itens
 
-# sincroniza os campos apenas quando eles ainda não existem
-for i, valor in enumerate(data["bmc"][chave]):
-    chave_widget = f"{chave}_{i}"
-    if chave_widget not in st.session_state:
-        st.session_state[chave_widget] = valor
-
+# CORREÇÃO: Não criar widgets com session_state antes de renderizar
+# Apenas renderizar os campos diretamente
 for indice in range(len(data["bmc"][chave])):
     widget_key = f"{chave}_{indice}"
     col1, col2 = st.columns([18,1], vertical_alignment="center")
 
     with col1:
-        st.text_input(
+        valor_atual = data["bmc"][chave][indice]
+        novo_valor = st.text_input(
             "",
+            value=valor_atual,
             key=widget_key,
             placeholder="Digite uma informação...",
             label_visibility="collapsed"
         )
+        # Atualizar dados se o valor mudou
+        if novo_valor != valor_atual:
+            data["bmc"][chave][indice] = novo_valor
 
     with col2:
         if len(data["bmc"][chave]) > 1:
@@ -276,17 +277,9 @@ for indice in range(len(data["bmc"][chave])):
                 use_container_width=True
             ):
                 data["bmc"][chave].pop(indice)
-                del st.session_state[widget_key]
                 st.rerun()
 
-novos = []
-for i in range(len(data["bmc"][chave])):
-    valor = st.session_state.get(f"{chave}_{i}", "").strip()
-    if valor:
-        novos.append(valor)
-data["bmc"][chave] = novos
 col_add1, col_add2 = st.columns([1,3])
-
 with col_add2:
     if st.button(
         "➕ Adicionar outro item",
@@ -294,10 +287,8 @@ with col_add2:
         use_container_width=True
     ):
         data["bmc"][chave].append("")
-        nova_posicao = len(data["bmc"][chave]) - 1
-        st.session_state[f"{chave}_{nova_posicao}"] = ""
-        st.rerun()   
-        
+        st.rerun()
+
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
@@ -376,9 +367,7 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
-                            # sincroniza os widgets com os novos dados
-                            for i, item in enumerate(itens_existentes):
-                                st.session_state[f"{chave}_{i}"] = item
+                            data["bmc"][chave] = itens_existentes
                             st.success(f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo.")
                             st.rerun()
                         else:
@@ -423,11 +412,8 @@ st.header("📊 Visualização Completa do Business Model Canvas")
 st.caption("Revise todos os blocos preenchidos antes de seguir para a próxima etapa.")
 
 for bloco in ETAPAS_BMC:
-
     st.markdown(f"### {bloco['titulo']}")
-
     itens = data["bmc"].get(bloco["chave"], [])
-
     if itens:
         for item in itens:
             if item.strip():
@@ -508,7 +494,9 @@ com linguagem simples e objetiva.
         context=contexto
     )
 
-# ========== BOTÃO PRÓXIMA ETAPA ==========
+# ============================================================
+# BOTÃO PRÓXIMA ETAPA
+# ============================================================
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
     if st.button("➡️ Vamos para a Próxima Etapa? > Análise PESTEL", width="stretch"):
