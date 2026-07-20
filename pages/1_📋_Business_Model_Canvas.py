@@ -240,21 +240,61 @@ data["bmc"][chave] = itens_atuais
 # Se estiver vazio, iniciar com uma linha vazia
 if not itens_atuais:
     itens_atuais = [""]
-
+else:
+    itens_atuais = itens_atuais[:]
+    
 # Criar DataFrame para edição em tabela
-df = pd.DataFrame({"Item": itens_atuais})
+if not itens_atuais:
+    itens_atuais = [""]
 
+for i, item in enumerate(itens_atuais):
+
+    col_item, col_remove = st.columns([8,1])
+
+    with col_item:
+        novo_item = st.text_input(
+            f"Item {i+1}",
+            value=item,
+            key=f"{chave}_item_{i}",
+            label_visibility="collapsed",
+            placeholder="Digite uma informação..."
+        )
+
+    with col_remove:
+        if st.button(
+            "🗑️",
+            key=f"{chave}_remove_{i}",
+            help="Remover item"
+        ):
+            data["bmc"][chave].pop(i)
+            st.rerun()
+
+
+    if novo_item.strip() != item:
+        data["bmc"][chave][i] = novo_item.strip()
+
+# Botão adicionar nova linha
+if st.button(
+    "➕ Adicionar item",
+    key=f"{chave}_add"
+):
+    data["bmc"][chave].append("")
+    st.rerun()
+    
 # Editor de tabela
 edited_df = st.data_editor(
     df,
-    num_rows="dynamic",
+    num_rows="fixed",
     use_container_width=True,
     hide_index=True,
     key=f"table_{chave}",
     column_config={
-        "Item": st.column_config.TextColumn("Item", width="large")
+        "Item": st.column_config.TextColumn(
+            "Item",
+            width="large"
+        )
     },
-    height=200
+    height=150
 )
 
 # Processar dados editados
@@ -388,37 +428,20 @@ with col_avancar:
 # ============================================================
 st.divider()
 st.header("📊 Visualização Completa do Business Model Canvas")
-st.caption("Após construir cada etapa, visualize seu modelo de negócio completo.")
+st.caption("Revise todos os blocos preenchidos antes de seguir para a próxima etapa.")
 
-canvas_data = []
 for bloco in ETAPAS_BMC:
-    chave_bloco = bloco["chave"]
-    itens = data["bmc"].get(chave_bloco, [])
+
+    st.markdown(f"### {bloco['titulo']}")
+
+    itens = data["bmc"].get(bloco["chave"], [])
 
     if itens:
-        # Juntar itens com quebra de linha para exibição completa
-        conteudo = "\n".join([f"• {item}" for item in itens if item.strip()])
+        for item in itens:
+            if item.strip():
+                st.markdown(f"- {item}")
     else:
-        conteudo = "_(não preenchido)_"
-    
-    canvas_data.append({
-        "Bloco": bloco["titulo"],
-        "Conteúdo": conteudo
-    })
-
-df_canvas = pd.DataFrame(canvas_data)
-
-# Aplicar estilo para quebra de texto nas células
-st.dataframe(
-    df_canvas,
-    width="stretch",
-    height=500,
-    hide_index=True,
-    column_config={
-        "Bloco": st.column_config.TextColumn("Bloco", width="medium"),
-        "Conteúdo": st.column_config.TextColumn("Conteúdo", width="large")
-    }
-)
+        st.caption("Nenhum item informado.")
 
 # ============================================================
 # EXPORTAÇÃO
