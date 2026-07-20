@@ -438,39 +438,179 @@ with col_avancar:
             st.rerun()
 
 # ============================================================
-# VISUALIZAÇÃO COMPLETA DO CANVAS - COM QUEBRA DE TEXTO
+# VISUALIZAÇÃO COMPLETA DO CANVAS - FORMATO TRADICIONAL
 # ============================================================
 st.divider()
-st.header("📊 Visualização Completa do Business Model Canvas")
-st.caption("Revise todos os blocos preenchidos antes de seguir para a próxima etapa.")
+st.header("📊 Business Model Canvas - Visualização Completa")
+st.caption("Visualize seu modelo de negócio no formato tradicional do Canvas.")
 
-for bloco in ETAPAS_BMC:
-    st.markdown(f"### {bloco['titulo']}")
-    itens = data["bmc"].get(bloco["chave"], [])
-    if itens:
-        for item in itens:
-            if item.strip():
-                st.markdown(f"- {item}")
-    else:
-        st.caption("Nenhum item informado.")
+# Definir cores dos blocos
+cores = {
+    "segmentos_clientes": "#FFE5CC",
+    "proposta_valor": "#FFD700",
+    "canais": "#CCE5FF",
+    "relacionamento_clientes": "#D4EDDA",
+    "fontes_receita": "#C8E6C9",
+    "recursos_chave": "#FFCDD2",
+    "atividades_chave": "#E8DAEF",
+    "parcerias_chave": "#D1C4E9",
+    "estrutura_custos": "#F8D7DA"
+}
+
+# Layout do Canvas em 3 colunas
+col_esq, col_centro, col_dir = st.columns([1.2, 1.6, 1.2])
+
+with col_esq:
+    st.markdown("### 🏗️ Infraestrutura")
+    
+    # Parcerias-Chave
+    with st.container(border=True):
+        st.markdown("#### 🤝 Parcerias-Chave")
+        itens = data["bmc"].get("parcerias_chave", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    # Atividades-Chave
+    with st.container(border=True):
+        st.markdown("#### ⚙️ Atividades-Chave")
+        itens = data["bmc"].get("atividades_chave", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    # Recursos-Chave
+    with st.container(border=True):
+        st.markdown("#### 🧱 Recursos-Chave")
+        itens = data["bmc"].get("recursos_chave", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+
+with col_centro:
+    st.markdown("### 💎 Proposta de Valor")
+    
+    # Proposta de Valor
+    with st.container(border=True):
+        st.markdown("#### 💎 Proposta de Valor")
+        itens = data["bmc"].get("proposta_valor", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    st.markdown("### 📡 Canais e Relacionamento")
+    
+    # Canais
+    with st.container(border=True):
+        st.markdown("#### 📡 Canais")
+        itens = data["bmc"].get("canais", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    # Relacionamento com Clientes
+    with st.container(border=True):
+        st.markdown("#### ❤️ Relacionamento com Clientes")
+        itens = data["bmc"].get("relacionamento_clientes", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+
+with col_dir:
+    st.markdown("### 👥 Clientes")
+    
+    # Segmentos de Clientes
+    with st.container(border=True):
+        st.markdown("#### 🎯 Segmentos de Clientes")
+        itens = data["bmc"].get("segmentos_clientes", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    st.markdown("### 💰 Finanças")
+    
+    # Estrutura de Custos
+    with st.container(border=True):
+        st.markdown("#### 💸 Estrutura de Custos")
+        itens = data["bmc"].get("estrutura_custos", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+    
+    # Fontes de Receita
+    with st.container(border=True):
+        st.markdown("#### 💰 Fontes de Receita")
+        itens = data["bmc"].get("fontes_receita", [])
+        if itens:
+            for item in itens:
+                if item.strip():
+                    st.markdown(f"- {item}")
+        else:
+            st.caption("_(não preenchido)_")
+
+# Botão para imprimir o Canvas
+st.divider()
+col_print1, col_print2, col_print3 = st.columns([1, 2, 1])
+with col_print2:
+    if st.button("🖨️ Imprimir Canvas", width="stretch"):
+        st.write("Use Ctrl+P (ou Cmd+P) para imprimir esta página.")
+        st.info("💡 O Canvas será impresso no formato tradicional.")
 
 # ============================================================
 # EXPORTAÇÃO
 # ============================================================
 st.divider()
-col_export1, col_export2 = st.columns(2)
+col_export1, col_export2, col_export3 = st.columns(3)
+
 with col_export1:
     texto_canvas = "BUSINESS MODEL CANVAS\n"
     texto_canvas += "=" * 40
     texto_canvas += "\n\n"
+    
+    # Ordem tradicional do Canvas
+    ordem_canvas = [
+        ("parcerias_chave", "Parcerias-Chave"),
+        ("atividades_chave", "Atividades-Chave"),
+        ("recursos_chave", "Recursos-Chave"),
+        ("proposta_valor", "Proposta de Valor"),
+        ("relacionamento_clientes", "Relacionamento com Clientes"),
+        ("canais", "Canais"),
+        ("segmentos_clientes", "Segmentos de Clientes"),
+        ("estrutura_custos", "Estrutura de Custos"),
+        ("fontes_receita", "Fontes de Receita")
+    ]
 
-    for bloco in ETAPAS_BMC:
-        titulo = bloco["titulo"]
-        itens = data["bmc"].get(bloco["chave"], [])
+    for chave, titulo in ordem_canvas:
+        itens = data["bmc"].get(chave, [])
         texto_canvas += f"{titulo}\n"
         if itens:
             for item in itens:
-                texto_canvas += f"• {item}\n"
+                if item.strip():
+                    texto_canvas += f"• {item}\n"
         else:
             texto_canvas += "(não preenchido)\n"
         texto_canvas += "\n"
@@ -486,6 +626,155 @@ with col_export2:
         file_name="business_model_canvas.json",
         mime="application/json",
         width="stretch"
+    )
+
+with col_export3:
+    html_canvas = f"""
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; }}
+            .container {{ max-width: 1200px; margin: 0 auto; }}
+            h1 {{ text-align: center; color: #1a1a2e; }}
+            .canvas-grid {{ display: grid; grid-template-columns: 1.2fr 1.6fr 1.2fr; gap: 15px; margin-top: 20px; }}
+            .bloco {{ border: 1px solid #ddd; border-radius: 8px; padding: 15px; min-height: 150px; }}
+            .bloco h3 {{ margin-top: 0; }}
+            .infra {{ background: #f8f4ff; }}
+            .proposta {{ background: #fff8e1; }}
+            .canais {{ background: #e3f2fd; }}
+            .clientes {{ background: #fff3e0; }}
+            .financas {{ background: #e8f5e9; }}
+            ul {{ padding-left: 20px; }}
+            li {{ margin-bottom: 5px; }}
+            @media print {{
+                .no-print {{ display: none; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Business Model Canvas</h1>
+            <div class="canvas-grid">
+                <div>
+                    <div class="bloco infra"><h3>🤝 Parcerias-Chave</h3>
+                        <ul>
+    """
+    
+    itens = data["bmc"].get("parcerias_chave", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco infra"><h3>⚙️ Atividades-Chave</h3><ul>
+    """
+    itens = data["bmc"].get("atividades_chave", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco infra"><h3>🧱 Recursos-Chave</h3><ul>
+    """
+    itens = data["bmc"].get("recursos_chave", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div></div>"
+    
+    html_canvas += f"""
+                <div>
+                    <div class="bloco proposta"><h3>💎 Proposta de Valor</h3><ul>
+    """
+    itens = data["bmc"].get("proposta_valor", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco canais"><h3>📡 Canais</h3><ul>
+    """
+    itens = data["bmc"].get("canais", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco canais"><h3>❤️ Relacionamento com Clientes</h3><ul>
+    """
+    itens = data["bmc"].get("relacionamento_clientes", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div></div>"
+    
+    html_canvas += f"""
+                <div>
+                    <div class="bloco clientes"><h3>🎯 Segmentos de Clientes</h3><ul>
+    """
+    itens = data["bmc"].get("segmentos_clientes", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco financas"><h3>💸 Estrutura de Custos</h3><ul>
+    """
+    itens = data["bmc"].get("estrutura_custos", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div>"
+    
+    html_canvas += f"""
+                    <div class="bloco financas"><h3>💰 Fontes de Receita</h3><ul>
+    """
+    itens = data["bmc"].get("fontes_receita", [])
+    if itens:
+        for item in itens:
+            if item.strip():
+                html_canvas += f"<li>{item}</li>"
+    else:
+        html_canvas += "<li><em>não preenchido</em></li>"
+    html_canvas += "</ul></div></div></div></div></body></html>"
+    
+    st.download_button(
+        "⬇️ Baixar Canvas (HTML)",
+        data=html_canvas.encode("utf-8"),
+        file_name="business_model_canvas.html",
+        mime="text/html",
+        width="stretch",
+        help="Baixe o HTML para imprimir ou visualizar o Canvas no formato tradicional"
     )
 
 # ============================================================
