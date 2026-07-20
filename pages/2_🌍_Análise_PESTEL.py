@@ -248,12 +248,6 @@ with col_gerar3:
             data["pestel"][cat] = []
         st.rerun()
 
-st.divider()
-st.info(
-    "💡 Preencha também a página **⚔️ 5 Forças de Porter**. Depois, vá para "
-    "**🎯 Análise SWOT** para consolidar tudo automaticamente."
-)
-
 # ========== ASSISTENTE IA PARA AJUDA ==========
 st.divider()
 st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
@@ -311,6 +305,11 @@ else:
         context=contexto,
     )
 
+st.divider()
+st.info(
+    "💡 Preencha também a página **⚔️ 5 Forças de Porter**. Depois, vá para "
+    "**🎯 Análise SWOT** para consolidar tudo automaticamente."
+)
 
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
