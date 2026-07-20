@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="5 Forças de Porter", page_icon="⚔️", layout="wide")
@@ -77,7 +78,7 @@ def gerar_analise_ia(forca_id=None):
                         if isinstance(item, dict) and item.get("descricao"):
                             pestel_itens.append(f"- {cat}: {item['descricao']} ({item.get('tipo', '')})")
             if pestel_itens:
-                pestel_dados = "\n".join(pestel_itens[:10])  # Limitar para não estourar token
+                pestel_dados = "\n".join(pestel_itens[:10])
         
         # Dados da SWOT
         swot_dados = ""
@@ -209,7 +210,7 @@ col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
 with col_gerar1:
     st.caption("A IA vai analisar seu setor e gerar análise para todas as 5 forças")
 with col_gerar2:
-    if st.button("🔄 Gerar Análise Completa", use_container_width=True):
+    if st.button("🔄 Gerar Análise Completa", width="stretch"):
         with st.spinner("Gerando análise completa..."):
             resultado = gerar_analise_ia()
             if resultado:
@@ -220,7 +221,7 @@ with col_gerar2:
                 st.success("✅ Análise completa gerada!")
                 st.rerun()
 with col_gerar3:
-    if st.button("🗑️ Limpar Análise", use_container_width=True):
+    if st.button("🗑️ Limpar Análise", width="stretch"):
         for forca in FORCAS:
             data["porter_analise"][forca["id"]]["intensidade"] = 3
             data["porter_analise"][forca["id"]]["notas"] = ""
@@ -235,7 +236,7 @@ for forca in FORCAS:
     # Botões IA e Limpar
     col_btn1, col_btn2, col_btn3 = st.columns([3, 1, 1])
     with col_btn1:
-        if st.button(f"🤖 Sugerir", key=f"sugerir_porter_{forca['id']}", use_container_width=True):
+        if st.button(f"🤖 Sugerir", key=f"sugerir_porter_{forca['id']}", width="stretch"):
             with st.spinner(f"Gerando análise para {forca['nome']}..."):
                 resultado = gerar_analise_ia(forca["id"])
                 if resultado:
@@ -244,7 +245,7 @@ for forca in FORCAS:
                     st.success(f"✅ Análise atualizada para {forca['nome']}!")
                     st.rerun()
     with col_btn2:
-        if st.button(f"🗑️ Limpar", key=f"limpar_porter_{forca['id']}", use_container_width=True):
+        if st.button(f"🗑️ Limpar", key=f"limpar_porter_{forca['id']}", width="stretch"):
             data["porter_analise"][forca["id"]]["intensidade"] = 3
             data["porter_analise"][forca["id"]]["notas"] = ""
             st.rerun()
@@ -267,7 +268,7 @@ st.metric("Intensidade competitiva média do setor", f"{media:.1f} / 5")
 st.divider()
 col_export1, col_export2 = st.columns(2)
 with col_export1:
-    if st.button("📋 Ver Análise Completa", use_container_width=True):
+    if st.button("📋 Ver Análise Completa", width="stretch"):
         texto = "ANÁLISE DAS 5 FORÇAS DE PORTER\n" + "="*50 + "\n\n"
         for forca in FORCAS:
             dados = data["porter_analise"][forca["id"]]
@@ -276,69 +277,64 @@ with col_export1:
             texto += f"  Observações: {dados['notas'] or '(vazio)'}\n\n"
         st.code(texto, language="markdown")
 
+# ========== ASSISTENTE IA PARA AJUDA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    porter_atual = ""
+    for forca in FORCAS:
+        dados = data["porter_analise"][forca["id"]]
+        porter_atual += f"\n{forca['nome']}:\n"
+        porter_atual += f"  Intensidade: {dados['intensidade']}/5\n"
+        porter_atual += f"  Observações: {dados['notas'] or '(vazio)'}\n"
+
+    contexto = f"""
+    SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+
+    EMPRESA:
+    {empresa_nome}
+
+    SETOR:
+    {empresa.get('setor', 'Não informado')}
+
+    LOCALIZAÇÃO:
+    {empresa.get('cidade_estado', 'Não informado')}
+
+    ANÁLISE DAS 5 FORÇAS DE PORTER:
+    {porter_atual}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Estratégia e 5 Forças de Porter.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Entender cada uma das 5 forças competitivas
+    - Avaliar a intensidade de cada força (1 a 5)
+    - Identificar oportunidades e ameaças do setor
+    - Relacionar as forças com o negócio
+    """
+
+    render_chat(
+        messages_key="messages_porter",
+        placeholder="Pergunte ao assistente sobre as 5 Forças de Porter...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Análise SWOT", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Análise SWOT", width="stretch"):
         st.switch_page("pages/4_🎯_Análise_SWOT.py")
-        
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com as 5 Forças de Porter")
 
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_porter = []
-        st.rerun()
-
-if "messages_porter" not in st.session_state:
-    st.session_state.messages_porter = []
-
-for msg in st.session_state.messages_porter:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre as 5 Forças de Porter..."):
-    st.session_state.messages_porter.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            porter_atual = ""
-            for forca in FORCAS:
-                dados = data["porter_analise"][forca["id"]]
-                porter_atual += f"\n{forca['nome']}:\n"
-                porter_atual += f"  Intensidade: {dados['intensidade']}/5\n"
-                porter_atual += f"  Observações: {dados['notas'] or '(vazio)'}\n"
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Estratégia e 5 Forças de Porter.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-LOCALIZAÇÃO: {empresa_cidade or 'Não informado'}
-
-ANÁLISE ATUAL:
-{porter_atual}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_porter[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_porter.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
