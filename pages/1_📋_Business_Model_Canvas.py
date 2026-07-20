@@ -467,7 +467,7 @@ canvas_html = f"""
 
 .canvas{{
 display:grid;
-grid-template-columns:18% 18% 28% 18% 18%;
+grid-template-columns:19.5% 19.5% 20% 19.5% 19.5%;
 grid-template-rows:250px 250px 180px;
 gap:10px;
 font-family:Arial;
