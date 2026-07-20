@@ -4,6 +4,7 @@ import json
 import re
 from datetime import datetime
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Monitoramento Estratégico", page_icon="📊", layout="wide")
@@ -32,7 +33,6 @@ def consolidar_kpis_estrategicos():
     """Consolida KPIs estratégicos de todas as fontes"""
     kpis = []
     
-    # KPIs dos objetivos estratégicos
     if "objetivos" in data:
         for obj in data["objetivos"]:
             if obj.get("objetivo") and obj.get("kpi"):
@@ -44,7 +44,6 @@ def consolidar_kpis_estrategicos():
                     "Status": "Em andamento"
                 })
     
-    # KPIs dos departamentos
     if "departamentos" in data:
         for depto, info in data["departamentos"].items():
             for indicador in info.get("indicadores", []):
@@ -63,7 +62,6 @@ def consolidar_acoes():
     """Consolida todas as ações do sistema"""
     acoes = []
     
-    # Ações do plano 5W2H
     if "acao_5w2h" in data:
         for acao in data["acao_5w2h"]:
             if acao.get("what"):
@@ -75,7 +73,6 @@ def consolidar_acoes():
                     "Status": acao.get("status", "Não iniciado")
                 })
     
-    # Ações dos departamentos
     if "departamentos" in data:
         for depto, info in data["departamentos"].items():
             for acao in info.get("acoes", []):
@@ -93,9 +90,8 @@ def consolidar_acoes():
 def gerar_alertas(acoes, kpis):
     """Gera alertas automáticos baseados no status"""
     alertas = []
-    
-    # Alertas de ações atrasadas
     hoje = datetime.now()
+    
     for acao in acoes:
         if acao.get("Status") in ["Não iniciado", "Em andamento"] and acao.get("Prazo"):
             try:
@@ -110,7 +106,6 @@ def gerar_alertas(acoes, kpis):
             except:
                 pass
     
-    # Alertas de KPIs críticos
     for kpi in kpis:
         if "meta" in kpi and kpi.get("meta"):
             try:
@@ -137,7 +132,6 @@ def render_tabela(dados, colunas, titulo, key):
     """Renderiza uma tabela com dados consolidados"""
     if dados:
         df = pd.DataFrame(dados)
-        # Garantir colunas
         for col in colunas:
             if col not in df.columns:
                 df[col] = ""
@@ -194,14 +188,12 @@ with st.expander("📈 Dashboard", expanded=True):
         kpis_total = len(kpis_consolidados)
         st.metric("Total de KPIs", kpis_total)
     
-    # Gráfico de status das ações
     if acoes_consolidados:
         st.markdown("#### Status das Ações")
         df_acoes = pd.DataFrame(acoes_consolidados)
         status_count = df_acoes["Status"].value_counts()
         st.bar_chart(status_count)
         
-        # Gráfico de origem das ações
         st.markdown("#### Origem das Ações")
         origem_count = df_acoes["Origem"].value_counts().head(10)
         st.bar_chart(origem_count)
@@ -211,7 +203,6 @@ with st.expander("📈 Evolução das Metas"):
     st.markdown("### Evolução das Metas")
     st.caption("Acompanhe a evolução dos indicadores ao longo do tempo")
     
-    # Simular evolução
     if kpis_consolidados:
         kpi_selecionado = st.selectbox(
             "Selecione um KPI para acompanhar",
@@ -219,7 +210,6 @@ with st.expander("📈 Evolução das Metas"):
         )
         
         if kpi_selecionado:
-            # Dados simulados de evolução
             import random
             meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
             valores = [random.randint(50, 100) for _ in range(12)]
@@ -230,7 +220,6 @@ with st.expander("📈 Evolução das Metas"):
             })
             st.line_chart(df_evolucao.set_index("Mês"))
             
-            # Meta atual
             kpi_atual = next((k for k in kpis_consolidados if k["KPI"] == kpi_selecionado), {})
             if kpi_atual.get("Meta"):
                 st.metric("Meta", kpi_atual.get("Meta", ""))
@@ -242,7 +231,6 @@ with st.expander("📋 Status das Ações"):
     st.markdown("### Status das Ações - Visão Kanban")
     
     if acoes_consolidados:
-        status_options = ["Não iniciado", "Em andamento", "Concluído", "Atrasado"]
         df_acoes = pd.DataFrame(acoes_consolidados)
         
         col_kanban1, col_kanban2, col_kanban3, col_kanban4 = st.columns(4)
@@ -291,7 +279,6 @@ with st.expander("⚠️ Alertas", expanded=True):
             }
         )
         
-        # Contagem por tipo
         alertas_count = df_alertas["Tipo"].value_counts()
         st.bar_chart(alertas_count)
     else:
@@ -301,7 +288,7 @@ with st.expander("⚠️ Alertas", expanded=True):
 st.divider()
 st.subheader("🤖 Gerar Relatório Executivo")
 
-if st.button("🤖 Gerar Relatório Executivo", use_container_width=True):
+if st.button("🤖 Gerar Relatório Executivo", width="stretch"):
     with st.spinner("Gerando relatório executivo com IA..."):
         try:
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -309,7 +296,6 @@ if st.button("🤖 Gerar Relatório Executivo", use_container_width=True):
             empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
             empresa_setor = data.get("empresa", {}).get("setor", "não informado")
             
-            # Preparar dados para o relatório
             total_acoes = len(acoes_consolidados)
             concluidas = len([a for a in acoes_consolidados if a.get("Status") == "Concluído"])
             total_kpis = len(kpis_consolidados)
@@ -354,73 +340,50 @@ if st.button("🤖 Gerar Relatório Executivo", use_container_width=True):
         except Exception as e:
             st.error(f"❌ Erro ao gerar relatório: {str(e)}")
 
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    MONITORAMENTO ESTRATÉGICO:
+    - Total de Ações: {len(acoes_consolidados)}
+    - Ações Concluídas: {len([a for a in acoes_consolidados if a.get('Status') == 'Concluído'])}
+    - Total de KPIs: {len(kpis_consolidados)}
+    - Alertas Ativos: {len(alertas_gerados)}
+    - Departamentos: {len(data.get('departamentos', {}))}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Monitoramento Estratégico.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Acompanhar o desempenho dos KPIs
+    - Analisar o status das ações
+    - Identificar alertas e riscos
+    - Tomar decisões baseadas em dados
+    - Conectar o monitoramento à estratégia geral
+    """
+
+    render_chat(
+        messages_key="messages_monitoramento",
+        placeholder="Pergunte ao assistente sobre o monitoramento...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Revisão", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Revisão", width="stretch"):
         st.switch_page("pages/10_🔄_Revisão.py")
-        
-# ========== ASSISTENTE IA ==========
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com Monitoramento")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_monitoramento = []
-        st.rerun()
-
-if "messages_monitoramento" not in st.session_state:
-    st.session_state.messages_monitoramento = []
-
-for msg in st.session_state.messages_monitoramento:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre o monitoramento..."):
-    st.session_state.messages_monitoramento.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            contexto = f"""
-            MONITORAMENTO ESTRATÉGICO:
-            - Total de Ações: {len(acoes_consolidados)}
-            - Ações Concluídas: {len([a for a in acoes_consolidados if a.get('Status') == 'Concluído'])}
-            - Total de KPIs: {len(kpis_consolidados)}
-            - Alertas Ativos: {len(alertas_gerados)}
-            - Departamentos: {len(data.get('departamentos', {}))}
-            """
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Monitoramento Estratégico.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_monitoramento[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_monitoramento.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
