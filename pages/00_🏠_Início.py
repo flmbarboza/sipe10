@@ -7,12 +7,6 @@ st.set_page_config(
     page_icon="🧭",
     layout="wide",
 )
-st.write(st.__version__)
-# ========== BOTÃO PRÓXIMA ETAPA ==========
-col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
-with col_prox2:
-    if st.button("➡️ Próxima Etapa > Canvas", width="stretch"):
-        st.switch_page("pages/1_📋_Business_Model_Canvas.py")
 
 init_data()
 data = get_data()
@@ -24,6 +18,12 @@ sidebar_data_controls()
 # ---------- Conteúdo da Home ----------
 st.title("🧭 Gestor Estratégico")
 st.caption("Ferramenta de apoio ao planejamento estratégico de empresas")
+
+# ========== BOTÃO PRÓXIMA ETAPA ==========
+col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
+with col_prox2:
+    if st.button("➡️ Próxima Etapa > Canvas", width="stretch"):
+        st.switch_page("pages/1_📋_Business_Model_Canvas.py")
 
 st.markdown("""
 Bem-vindo! Este aplicativo guia você pela construção do planejamento estratégico
