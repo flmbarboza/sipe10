@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+import uuid
 import re
 from openai import OpenAI
 from utils.data_manager import init_data, get_data, sidebar_data_controls
@@ -196,17 +197,23 @@ chave = etapa["chave"]
 garantir_bloco(chave)
 
 session_key = f"items_{chave}"
+
+# Converte listas antigas (string) para o novo formato
 if session_key not in st.session_state:
-    st.session_state[session_key] = data["bmc"].get(chave, []).copy()
-
-# Se houve alteração externa (IA, importação, etc.)
-elif st.session_state[session_key] != data["bmc"].get(chave, []):
-    st.session_state[session_key] = data["bmc"][chave].copy()
-
-# Garantir pelo menos uma linha
-if len(st.session_state[session_key]) == 0:
-    st.session_state[session_key] = [""]
-
+    itens = data["bmc"].get(chave, [])
+    lista = []
+    for item in itens:
+        lista.append({
+            "id": uuid.uuid4().hex,
+            "texto": item
+        })
+    if not lista:
+        lista.append({
+            "id": uuid.uuid4().hex,
+            "texto": ""
+        })
+    st.session_state[session_key] = lista
+    
 # ============================================================
 # BARRA DE PROGRESSO
 # ============================================================
@@ -242,61 +249,54 @@ st.divider()
 # ÁREA DE PREENCHIMENTO
 # ============================================================
 st.subheader("✍️ Construa sua resposta")
-st.markdown(
-    "Digite uma ideia por linha. Não se preocupe em escrever perfeitamente agora. "
-    "Você poderá editar tudo depois."
-)
-
-garantir_bloco(chave)
-
-# Inicializar session_state para os itens
-if f"items_{chave}" not in st.session_state:
-    st.session_state[session_key] = data["bmc"].get(chave, [])
-    if not st.session_state[session_key]:
-        st.session_state[session_key] = [""]
-
-# Sincronizar data com session_state
-data["bmc"][chave] = st.session_state[session_key]
-
-# Renderizar os campos
-for indice in range(len(st.session_state[session_key])):
-    widget_key = f"{chave}_{indice}"
+indice_remover = None
+for item in st.session_state[session_key]:
     col1, col2 = st.columns([18,1], vertical_alignment="center")
-
     with col1:
-        valor_atual = st.session_state[session_key][indice]
-        novo_valor = st.text_input(
+        widget_key = f"{chave}_{item['id']}"
+        texto = st.text_input(
             "",
-            value=valor_atual,
+            value=item["texto"],
             key=widget_key,
             placeholder="Digite uma informação...",
             label_visibility="collapsed"
         )
-        if novo_valor != valor_atual:
-            st.session_state[session_key][indice] = novo_valor
-            data["bmc"][chave] = st.session_state[session_key]
+        item["texto"] = texto
 
     with col2:
         if len(st.session_state[session_key]) > 1:
             if st.button(
                 "🗑️",
-                key=f"remover_{widget_key}",
+                key=f"remover_{item['id']}",
                 use_container_width=True
             ):
-                st.session_state[session_key].pop(indice)
-                data["bmc"][chave] = st.session_state[session_key]
-                st.rerun()
+                indice_remover = item["id"]
 
-col_add1, col_add2 = st.columns([1,3])
-with col_add2:
-    if st.button(
-        "➕ Adicionar outro item",
-        key=f"novo_item_{chave}",
-        use_container_width=True
-    ):
-        st.session_state[session_key].append("")
-        data["bmc"][chave] = st.session_state[session_key]
-        st.rerun()
+if indice_remover is not None:
+    st.session_state[session_key] = [
+        x for x in st.session_state[session_key]
+        if x["id"] != indice_remover
+    ]
+    st.rerun()
+
+if st.button(
+    "➕ Adicionar outro item",
+    use_container_width=True
+):
+    st.session_state[session_key].append(
+        {
+            "id": uuid.uuid4().hex,
+            "texto": ""
+        }
+    )
+    st.rerun()
+
+# Atualiza o formato antigo utilizado pelo restante do sistema
+data["bmc"][chave] = [
+    item["texto"]
+    for item in st.session_state[session_key]
+    if item["texto"].strip()
+]
 
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
