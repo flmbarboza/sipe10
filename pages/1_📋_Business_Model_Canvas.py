@@ -197,22 +197,24 @@ chave = etapa["chave"]
 garantir_bloco(chave)
 
 session_key = f"items_{chave}"
-
-# Converte listas antigas (string) para o novo formato
 if session_key not in st.session_state:
     itens = data["bmc"].get(chave, [])
-    lista = []
-    for item in itens:
-        lista.append({
+    st.session_state[session_key] = [
+        {
             "id": uuid.uuid4().hex,
-            "texto": item
-        })
-    if not lista:
-        lista.append({
+            "texto": texto
+        }
+        for texto in itens
+    ]
+
+# Se não existir nenhum item
+if len(st.session_state[session_key]) == 0:
+    st.session_state[session_key] = [
+        {
             "id": uuid.uuid4().hex,
             "texto": ""
-        })
-    st.session_state[session_key] = lista
+        }
+    ]
     
 # ============================================================
 # BARRA DE PROGRESSO
@@ -376,16 +378,20 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
-                            # Atualiza os dados permanentes
-                            data["bmc"][chave] = itens_existentes
-                        
-                            # Atualiza também o session_state da tela
-                            st.session_state[session_key] = itens_existentes.copy()
-                        
-                            st.success(
-                                f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo."
-                            )
-                            st.rerun()
+                                # Atualiza os dados permanentes
+                                data["bmc"][chave] = itens_existentes
+                                # Converte para o formato usado pela interface
+                                st.session_state[session_key] = [
+                                    {
+                                        "id": uuid.uuid4().hex,
+                                        "texto": texto
+                                    }
+                                    for texto in itens_existentes
+                                ]
+                                st.success(
+                                    f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo."
+                                )
+                                st.rerun()
                         else:
                             st.info("ℹ️ Todas as sugestões já existem no bloco.")
                     else:
