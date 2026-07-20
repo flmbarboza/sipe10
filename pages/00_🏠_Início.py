@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input
+from utils.chat import render_chat
 
 st.set_page_config(
     page_title="Gestor Estratégico",
@@ -127,81 +128,41 @@ st.info(
 
 st.divider()
 
-# ========== ASSISTENTE IA PARA AJUDA ==========
-st.subheader("💬 Assistente IA - Ajuda com o Planejamento")
+contexto = f"""
+SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
 
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_home = []
-        st.rerun()
+EMPRESA: {empresa_nome}
+SETOR: {empresa_setor}
+PROGRESSO: {progresso:.0f}%
+SEÇÕES PREENCHIDAS: {preenchidas}/{total_secoes}
+TOTAL DE AÇÕES: {total_acoes}
+DEPARTAMENTOS: {len(data.get("departamentos", {}))}
+"""
 
-if "messages_home" not in st.session_state:
-    st.session_state.messages_home = []
-
-for msg in st.session_state.messages_home:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre o planejamento estratégico..."):
-    st.session_state.messages_home.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            from openai import OpenAI
-            
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            contexto = f"""
-            SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
-            
-            EMPRESA: {empresa_nome}
-            SETOR: {empresa_setor}
-            PROGRESSO: {progresso:.0f}%
-            SEÇÕES PREENCHIDAS: {preenchidas}/{total_secoes}
-            TOTAL DE AÇÕES: {len([a for a in data.get('acao_5w2h', []) if a.get('what')])}
-            DEPARTAMENTOS: {len(data.get('departamentos', {}))}
-            """
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Planejamento Estratégico.
-
-{contexto}
+system_prompt = """
+Você é um assistente especialista em Planejamento Estratégico.
 
 O SIPE possui as seguintes seções:
+
 1. Business Model Canvas
 2. Análise PESTEL
 3. 5 Forças de Porter
 4. Análise SWOT
-5. Planejamento Estratégico (MVV, SWOT Cruzada, Objetivos)
+5. Planejamento Estratégico
 6. Plano de Ação 5W2H
-7. Planos por Função (Departamentais)
+7. Planos por Função
 8. Orçamento
 9. Monitoramento
 10. Revisão Estratégica
 11. Painel de Controle
 12. Relatório Completo
 
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_home[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_home.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
+Responda em português do Brasil, de forma prática e objetiva.
+"""
+
+render_chat(
+    messages_key="messages_home",
+    placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
+    system_prompt=system_prompt,
+    context=contexto,
+)
