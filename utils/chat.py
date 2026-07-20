@@ -39,43 +39,50 @@ def render_chat(
         st.session_state[messages_key] = []
 
     # Botão limpar
-    col1, col2 = st.columns([5, 1])
+   # col1, col2 = st.columns([5, 1])
 
-    with col2:
-        if st.button("🗑️ Limpar Chat", key=f"clear_{messages_key}"):
-            st.session_state[messages_key] = []
-            st.rerun()
+    #with col2:
+     #   if st.button("🗑️ Limpar Chat", key=f"clear_{messages_key}"):
+      #      st.session_state[messages_key] = []
+       #     st.rerun()
 
     # Histórico
     for msg in st.session_state[messages_key]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Campo de pergunta
-    col_input, col_btn = st.columns([5, 1])
+    # Campo de pergunta + botões
+    col_input, col_buttons = st.columns([5, 1])
    
     with col_input:
        pergunta = st.text_area(
            "",
            placeholder=placeholder,
-           height=80,
+           height=100,
            key=f"pergunta_{messages_key}",
            label_visibility="collapsed"
        )
-
-    with col_btn:
+   
+    with col_buttons:
        enviar = st.button(
            "👽 Enviar",
            key=f"enviar_{messages_key}",
            width="stretch"
        )
    
+       limpar = st.button(
+           "🗑️ Limpar",
+           key=f"limpar_{messages_key}",
+           width="stretch"
+       )
+   
+    if limpar:
+       st.session_state[messages_key] = []
+       st.rerun()
+   
     if not enviar or not pergunta.strip():
        return
-       st.session_state[messages_key].append(
-           {"role": "user", "content": pergunta}
-       )
-
+    
     with st.chat_message("user"):
         st.markdown(pergunta)
 
