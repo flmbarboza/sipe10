@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import uuid
 import re
+import streamlit.components.v1 as components    
 from openai import OpenAI
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
@@ -440,117 +441,134 @@ with col_avancar:
 # ============================================================
 # VISUALIZAÇÃO COMPLETA DO CANVAS - FORMATO TRADICIONAL ALINHADO
 # ============================================================
+def html_lista(chave):
+    itens = data["bmc"].get(chave, [])
+
+    if not itens:
+        return "<i>Nenhum item informado.</i>"
+
+    html = "<ul>"
+
+    for item in itens:
+        if item.strip():
+            html += f"<li>{item}</li>"
+
+    html += "</ul>"
+
+    return html
+
 st.divider()
-st.header("📊 Business Model Canvas - Visualização Completa")
-st.caption("Visualize seu modelo de negócio no formato tradicional do Canvas.")
 
-# Layout do Canvas em 3 colunas com alturas fixas
-col_esq, col_centro, col_dir = st.columns([1.2, 1.6, 1.2])
+st.header("📊 Business Model Canvas")
 
-# Função para renderizar bloco com altura fixa
-def render_bloco_fixo(titulo, icone, chave, altura=180):
-    with st.container(border=True):
-        st.markdown(f"#### {icone} {titulo}")
-        itens = data["bmc"].get(chave, [])
-        if itens:
-            # Limitar a 10 itens para não estourar a altura
-            for item in itens[:10]:
-                if item.strip():
-                    st.markdown(f"- {item}")
-            if len(itens) > 10:
-                st.caption(f"... e mais {len(itens) - 10} itens")
-        else:
-            st.caption("_(não preenchido)_")
-        # Espaçamento para manter altura
-        st.markdown('<div style="height:0px;"></div>', unsafe_allow_html=True)
+canvas_html = f"""
 
-with col_esq:
-    st.markdown("### 🏗️ Infraestrutura")
-    
-    # Parcerias-Chave
-    render_bloco_fixo("Parcerias-Chave", "🤝", "parcerias_chave", altura=180)
-    
-    # Atividades-Chave
-    render_bloco_fixo("Atividades-Chave", "⚙️", "atividades_chave", altura=180)
-    
-    # Recursos-Chave
-    render_bloco_fixo("Recursos-Chave", "🧱", "recursos_chave", altura=180)
+<style>
 
-with col_centro:
-    st.markdown("### 💎 Proposta de Valor")
-    
-    # Proposta de Valor
-    render_bloco_fixo("Proposta de Valor", "💎", "proposta_valor", altura=180)
-    
-    st.markdown("### 📡 Canais e Relacionamento")
-    
-    col_canais, col_rel = st.columns(2)
-    with col_canais:
-        with st.container(border=True):
-            st.markdown("#### 📡 Canais")
-            itens = data["bmc"].get("canais", [])
-            if itens:
-                for item in itens[:8]:
-                    if item.strip():
-                        st.markdown(f"- {item}")
-                if len(itens) > 8:
-                    st.caption(f"... e mais {len(itens) - 8} itens")
-            else:
-                st.caption("_(não preenchido)_")
-    with col_rel:
-        with st.container(border=True):
-            st.markdown("#### ❤️ Relacionamento")
-            itens = data["bmc"].get("relacionamento_clientes", [])
-            if itens:
-                for item in itens[:8]:
-                    if item.strip():
-                        st.markdown(f"- {item}")
-                if len(itens) > 8:
-                    st.caption(f"... e mais {len(itens) - 8} itens")
-            else:
-                st.caption("_(não preenchido)_")
+.canvas{{
+display:grid;
+grid-template-columns:18% 18% 28% 18% 18%;
+grid-template-rows:250px 250px 180px;
+gap:10px;
+font-family:Arial;
+}}
 
-with col_dir:
-    st.markdown("### 👥 Clientes")
-    
-    # Segmentos de Clientes
-    render_bloco_fixo("Segmentos de Clientes", "🎯", "segmentos_clientes", altura=180)
-    
-    st.markdown("### 💰 Finanças")
-    
-    col_custos, col_receitas = st.columns(2)
-    with col_custos:
-        with st.container(border=True):
-            st.markdown("#### 💸 Custos")
-            itens = data["bmc"].get("estrutura_custos", [])
-            if itens:
-                for item in itens[:8]:
-                    if item.strip():
-                        st.markdown(f"- {item}")
-                if len(itens) > 8:
-                    st.caption(f"... e mais {len(itens) - 8} itens")
-            else:
-                st.caption("_(não preenchido)_")
-    with col_receitas:
-        with st.container(border=True):
-            st.markdown("#### 💰 Receitas")
-            itens = data["bmc"].get("fontes_receita", [])
-            if itens:
-                for item in itens[:8]:
-                    if item.strip():
-                        st.markdown(f"- {item}")
-                if len(itens) > 8:
-                    st.caption(f"... e mais {len(itens) - 8} itens")
-            else:
-                st.caption("_(não preenchido)_")
+.box{{
+border:2px solid #d0d0d0;
+border-radius:10px;
+padding:12px;
+background:#fffef6;
+overflow:auto;
+}}
 
-# Botão para imprimir o Canvas
-st.divider()
-col_print1, col_print2, col_print3 = st.columns([1, 2, 1])
-with col_print2:
-    if st.button("🖨️ Imprimir Canvas", width="stretch"):
-        st.write("Use Ctrl+P (ou Cmd+P) para imprimir esta página.")
-        st.info("💡 O Canvas será impresso no formato tradicional.")
+.box h3{{
+margin-top:0;
+margin-bottom:10px;
+font-size:18px;
+color:#0b5394;
+}}
+
+.box ul{{
+padding-left:20px;
+margin:0;
+}}
+
+.box li{{
+margin-bottom:6px;
+}}
+
+.parcerias{{grid-column:1;grid-row:1;}}
+
+.recursos{{grid-column:1;grid-row:2;}}
+
+.atividades{{grid-column:2;grid-row:1 / span 2;}}
+
+.proposta{{grid-column:3;grid-row:1 / span 2;}}
+
+.relacionamento{{grid-column:4;grid-row:1;}}
+
+.canais{{grid-column:4;grid-row:2;}}
+
+.segmentos{{grid-column:5;grid-row:1 / span 2;}}
+
+.custos{{grid-column:1 / span 3;grid-row:3;}}
+
+.receitas{{grid-column:4 / span 2;grid-row:3;}}
+
+</style>
+
+<div class="canvas">
+
+<div class="box parcerias">
+<h3>🤝 Parcerias-Chave</h3>
+{html_lista("parcerias_chave")}
+</div>
+
+<div class="box recursos">
+<h3>🧱 Recursos-Chave</h3>
+{html_lista("recursos_chave")}
+</div>
+
+<div class="box atividades">
+<h3>⚙️ Atividades-Chave</h3>
+{html_lista("atividades_chave")}
+</div>
+
+<div class="box proposta">
+<h3>💎 Proposta de Valor</h3>
+{html_lista("proposta_valor")}
+</div>
+
+<div class="box relacionamento">
+<h3>❤️ Relacionamento</h3>
+{html_lista("relacionamento_clientes")}
+</div>
+
+<div class="box canais">
+<h3>📡 Canais</h3>
+{html_lista("canais")}
+</div>
+
+<div class="box segmentos">
+<h3>🎯 Segmentos de Clientes</h3>
+{html_lista("segmentos_clientes")}
+</div>
+
+<div class="box custos">
+<h3>💸 Estrutura de Custos</h3>
+{html_lista("estrutura_custos")}
+</div>
+
+<div class="box receitas">
+<h3>💰 Fontes de Receita</h3>
+{html_lista("fontes_receita")}
+</div>
+
+</div>
+
+"""
+
+components.html(canvas_html,height=760,scrolling=True)
 
 # ============================================================
 # EXPORTAÇÃO
