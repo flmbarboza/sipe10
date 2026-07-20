@@ -226,7 +226,6 @@ with st.expander("📌 Exemplos", expanded=False):
         st.markdown(f"- {exemplo}")
 
 st.divider()
-
 # ============================================================
 # ÁREA DE PREENCHIMENTO
 # ============================================================
@@ -250,8 +249,7 @@ if len(itens) == 0:
 
 data["bmc"][chave] = itens
 
-# CORREÇÃO: Não criar widgets com session_state antes de renderizar
-# Apenas renderizar os campos diretamente
+# Renderizar os campos
 for indice in range(len(data["bmc"][chave])):
     widget_key = f"{chave}_{indice}"
     col1, col2 = st.columns([18,1], vertical_alignment="center")
@@ -265,7 +263,6 @@ for indice in range(len(data["bmc"][chave])):
             placeholder="Digite uma informação...",
             label_visibility="collapsed"
         )
-        # Atualizar dados se o valor mudou
         if novo_valor != valor_atual:
             data["bmc"][chave][indice] = novo_valor
 
@@ -288,7 +285,7 @@ with col_add2:
     ):
         data["bmc"][chave].append("")
         st.rerun()
-
+        
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
