@@ -429,7 +429,7 @@ with col_voltar:
 
 with col_avancar:
     if etapa_atual < len(ETAPAS_BMC)-1:
-        if st.button("Próxima etapa ➡️",width="stretch"):
+        if st.button("Próxima etapa do Canvas ➡️",width="stretch"):
             st.session_state.bmc_etapa += 1
             st.rerun()
     else:
