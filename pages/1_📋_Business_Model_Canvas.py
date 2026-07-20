@@ -438,139 +438,111 @@ with col_avancar:
             st.rerun()
 
 # ============================================================
-# VISUALIZAÇÃO COMPLETA DO CANVAS - FORMATO TRADICIONAL
+# VISUALIZAÇÃO COMPLETA DO CANVAS - FORMATO TRADICIONAL ALINHADO
 # ============================================================
 st.divider()
 st.header("📊 Business Model Canvas - Visualização Completa")
 st.caption("Visualize seu modelo de negócio no formato tradicional do Canvas.")
 
-# Definir cores dos blocos
-cores = {
-    "segmentos_clientes": "#FFE5CC",
-    "proposta_valor": "#FFD700",
-    "canais": "#CCE5FF",
-    "relacionamento_clientes": "#D4EDDA",
-    "fontes_receita": "#C8E6C9",
-    "recursos_chave": "#FFCDD2",
-    "atividades_chave": "#E8DAEF",
-    "parcerias_chave": "#D1C4E9",
-    "estrutura_custos": "#F8D7DA"
-}
-
-# Layout do Canvas em 3 colunas
+# Layout do Canvas em 3 colunas com alturas fixas
 col_esq, col_centro, col_dir = st.columns([1.2, 1.6, 1.2])
+
+# Função para renderizar bloco com altura fixa
+def render_bloco_fixo(titulo, icone, chave, altura=180):
+    with st.container(border=True):
+        st.markdown(f"#### {icone} {titulo}")
+        itens = data["bmc"].get(chave, [])
+        if itens:
+            # Limitar a 10 itens para não estourar a altura
+            for item in itens[:10]:
+                if item.strip():
+                    st.markdown(f"- {item}")
+            if len(itens) > 10:
+                st.caption(f"... e mais {len(itens) - 10} itens")
+        else:
+            st.caption("_(não preenchido)_")
+        # Espaçamento para manter altura
+        st.markdown('<div style="height:0px;"></div>', unsafe_allow_html=True)
 
 with col_esq:
     st.markdown("### 🏗️ Infraestrutura")
     
     # Parcerias-Chave
-    with st.container(border=True):
-        st.markdown("#### 🤝 Parcerias-Chave")
-        itens = data["bmc"].get("parcerias_chave", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    render_bloco_fixo("Parcerias-Chave", "🤝", "parcerias_chave", altura=180)
     
     # Atividades-Chave
-    with st.container(border=True):
-        st.markdown("#### ⚙️ Atividades-Chave")
-        itens = data["bmc"].get("atividades_chave", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    render_bloco_fixo("Atividades-Chave", "⚙️", "atividades_chave", altura=180)
     
     # Recursos-Chave
-    with st.container(border=True):
-        st.markdown("#### 🧱 Recursos-Chave")
-        itens = data["bmc"].get("recursos_chave", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    render_bloco_fixo("Recursos-Chave", "🧱", "recursos_chave", altura=180)
 
 with col_centro:
     st.markdown("### 💎 Proposta de Valor")
     
     # Proposta de Valor
-    with st.container(border=True):
-        st.markdown("#### 💎 Proposta de Valor")
-        itens = data["bmc"].get("proposta_valor", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    render_bloco_fixo("Proposta de Valor", "💎", "proposta_valor", altura=180)
     
     st.markdown("### 📡 Canais e Relacionamento")
     
-    # Canais
-    with st.container(border=True):
-        st.markdown("#### 📡 Canais")
-        itens = data["bmc"].get("canais", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
-    
-    # Relacionamento com Clientes
-    with st.container(border=True):
-        st.markdown("#### ❤️ Relacionamento com Clientes")
-        itens = data["bmc"].get("relacionamento_clientes", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    col_canais, col_rel = st.columns(2)
+    with col_canais:
+        with st.container(border=True):
+            st.markdown("#### 📡 Canais")
+            itens = data["bmc"].get("canais", [])
+            if itens:
+                for item in itens[:8]:
+                    if item.strip():
+                        st.markdown(f"- {item}")
+                if len(itens) > 8:
+                    st.caption(f"... e mais {len(itens) - 8} itens")
+            else:
+                st.caption("_(não preenchido)_")
+    with col_rel:
+        with st.container(border=True):
+            st.markdown("#### ❤️ Relacionamento")
+            itens = data["bmc"].get("relacionamento_clientes", [])
+            if itens:
+                for item in itens[:8]:
+                    if item.strip():
+                        st.markdown(f"- {item}")
+                if len(itens) > 8:
+                    st.caption(f"... e mais {len(itens) - 8} itens")
+            else:
+                st.caption("_(não preenchido)_")
 
 with col_dir:
     st.markdown("### 👥 Clientes")
     
     # Segmentos de Clientes
-    with st.container(border=True):
-        st.markdown("#### 🎯 Segmentos de Clientes")
-        itens = data["bmc"].get("segmentos_clientes", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    render_bloco_fixo("Segmentos de Clientes", "🎯", "segmentos_clientes", altura=180)
     
     st.markdown("### 💰 Finanças")
     
-    # Estrutura de Custos
-    with st.container(border=True):
-        st.markdown("#### 💸 Estrutura de Custos")
-        itens = data["bmc"].get("estrutura_custos", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
-    
-    # Fontes de Receita
-    with st.container(border=True):
-        st.markdown("#### 💰 Fontes de Receita")
-        itens = data["bmc"].get("fontes_receita", [])
-        if itens:
-            for item in itens:
-                if item.strip():
-                    st.markdown(f"- {item}")
-        else:
-            st.caption("_(não preenchido)_")
+    col_custos, col_receitas = st.columns(2)
+    with col_custos:
+        with st.container(border=True):
+            st.markdown("#### 💸 Custos")
+            itens = data["bmc"].get("estrutura_custos", [])
+            if itens:
+                for item in itens[:8]:
+                    if item.strip():
+                        st.markdown(f"- {item}")
+                if len(itens) > 8:
+                    st.caption(f"... e mais {len(itens) - 8} itens")
+            else:
+                st.caption("_(não preenchido)_")
+    with col_receitas:
+        with st.container(border=True):
+            st.markdown("#### 💰 Receitas")
+            itens = data["bmc"].get("fontes_receita", [])
+            if itens:
+                for item in itens[:8]:
+                    if item.strip():
+                        st.markdown(f"- {item}")
+                if len(itens) > 8:
+                    st.caption(f"... e mais {len(itens) - 8} itens")
+            else:
+                st.caption("_(não preenchido)_")
 
 # Botão para imprimir o Canvas
 st.divider()
