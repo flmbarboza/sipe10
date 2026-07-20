@@ -160,7 +160,7 @@ Exemplos:
 - Distribuidores
 - Parceiros estratégicos
 """,
-        "exemplos": ["Fornecedores","Representantes","Parceiros comerciales"]
+        "exemplos": ["Fornecedores","Representantes","Parceiros comerciais"]
     },
     {
         "chave": "estrutura_custos",
@@ -289,19 +289,19 @@ if gerar_sugestao:
             
             Contexto da empresa: {contexto_empresa}
             
-            Gere de 3 a 5 sugestões práticas e realistas para este bloco.
-            As sugestões devem ser respostas diretas à pergunta orientadora.
+            IMPORTANTE: Gere APENAS uma lista de itens simples, sem explicações, sem numeração, sem bullets.
+            Cada item deve ser uma frase curta respondendo diretamente à pergunta.
             
-            Responda APENAS com um JSON no formato:
-            {{"sugestoes": ["sugestão 1", "sugestão 2", "sugestão 3"]}}
+            Exemplo de resposta correta:
+            {{"sugestoes": ["Consumidores finais da classe média", "Pequenas empresas locais", "Jovens empreendedores"]}}
             
-            Responda em português do Brasil.
+            Responda APENAS com o JSON.
             """
             
             response = client.chat.completions.create(
                 model="openai/gpt-oss-20b",
                 messages=[
-                    {"role": "system", "content": "Você é um consultor experiente em estratégia empresarial e Business Model Canvas. Responda APENAS com JSON válido."},
+                    {"role": "system", "content": "Você é um consultor de estratégia. Responda APENAS com JSON válido, sem explicações."},
                     {"role": "user", "content": prompt_ia}
                 ],
                 temperature=0.7
@@ -313,13 +313,19 @@ if gerar_sugestao:
                 dados = json.loads(json_match.group())
                 sugestoes = dados.get("sugestoes", [])
                 
-                if sugestoes:
-                    # Inserir sugestões automaticamente
-                    data["bmc"][chave] = sugestoes
-                    st.success(f"✅ {len(sugestoes)} sugestões inseridas! Revise e edite abaixo.")
-                    st.rerun()
+                if sugestoes and isinstance(sugestoes, list):
+                    # Remover itens vazios e duplicados
+                    sugestoes = [s.strip() for s in sugestoes if s and s.strip()]
+                    sugestoes = list(dict.fromkeys(sugestoes))  # Remove duplicatas mantendo ordem
+                    
+                    if sugestoes:
+                        data["bmc"][chave] = sugestoes
+                        st.success(f"✅ {len(sugestoes)} sugestões inseridas! Revise e edite abaixo.")
+                        st.rerun()
+                    else:
+                        st.warning("Nenhuma sugestão válida gerada. Tente novamente.")
                 else:
-                    st.warning("Nenhuma sugestão gerada. Tente novamente.")
+                    st.warning("Formato de resposta inválido. Tente novamente.")
             else:
                 st.error("Erro ao processar a resposta da IA.")
                 st.code(conteudo)
