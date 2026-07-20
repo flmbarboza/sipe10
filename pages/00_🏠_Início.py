@@ -120,7 +120,9 @@ st.info(
     icon="💡",
 )
 
+# ========== ASSISTENTE IA PARA AJUDA ==========
 st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
 
 empresa = data.get("empresa", {})
 
@@ -189,7 +191,7 @@ else:
 
     render_chat(
         messages_key="messages_home",
-        placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
+        placeholder="Pergunte ao assistente sobre o que faz o SIPE...",
         system_prompt=system_prompt,
         context=contexto,
     )
@@ -197,5 +199,5 @@ else:
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Canvas", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Canvas Business Model", width="stretch"):
         st.switch_page("pages/1_📋_Business_Model_Canvas.py")
