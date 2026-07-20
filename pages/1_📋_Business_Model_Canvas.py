@@ -195,6 +195,18 @@ etapa = ETAPAS_BMC[etapa_atual]
 chave = etapa["chave"]
 garantir_bloco(chave)
 
+session_key = f"items_{chave}"
+if session_key not in st.session_state:
+    st.session_state[session_key] = data["bmc"].get(chave, []).copy()
+
+# Se houve alteração externa (IA, importação, etc.)
+elif st.session_state[session_key] != data["bmc"].get(chave, []):
+    st.session_state[session_key] = data["bmc"][chave].copy()
+
+# Garantir pelo menos uma linha
+if len(st.session_state[session_key]) == 0:
+    st.session_state[session_key] = [""]
+
 # ============================================================
 # BARRA DE PROGRESSO
 # ============================================================
@@ -239,20 +251,20 @@ garantir_bloco(chave)
 
 # Inicializar session_state para os itens
 if f"items_{chave}" not in st.session_state:
-    st.session_state[f"items_{chave}"] = data["bmc"].get(chave, [])
-    if not st.session_state[f"items_{chave}"]:
-        st.session_state[f"items_{chave}"] = [""]
+    st.session_state[session_key] = data["bmc"].get(chave, [])
+    if not st.session_state[session_key]:
+        st.session_state[session_key] = [""]
 
 # Sincronizar data com session_state
-data["bmc"][chave] = st.session_state[f"items_{chave}"]
+data["bmc"][chave] = st.session_state[session_key]
 
 # Renderizar os campos
-for indice in range(len(st.session_state[f"items_{chave}"])):
+for indice in range(len(st.session_state[session_key])):
     widget_key = f"{chave}_{indice}"
     col1, col2 = st.columns([18,1], vertical_alignment="center")
 
     with col1:
-        valor_atual = st.session_state[f"items_{chave}"][indice]
+        valor_atual = st.session_state[session_key][indice]
         novo_valor = st.text_input(
             "",
             value=valor_atual,
@@ -261,26 +273,26 @@ for indice in range(len(st.session_state[f"items_{chave}"])):
             label_visibility="collapsed"
         )
         if novo_valor != valor_atual:
-            st.session_state[f"items_{chave}"][indice] = novo_valor
-            data["bmc"][chave] = st.session_state[f"items_{chave}"]
+            st.session_state[session_key][indice] = novo_valor
+            data["bmc"][chave] = st.session_state[session_key]
 
     with col2:
-        if len(st.session_state[f"items_{chave}"]) > 1:
+        if len(st.session_state[session_key]) > 1:
             if st.button(
                 "🗑️",
                 key=f"remover_{widget_key}",
                 use_container_width=True
             ):
-                st.session_state[f"items_{chave}"].pop(indice)
-                data["bmc"][chave] = st.session_state[f"items_{chave}"]
+                st.session_state[session_key].pop(indice)
+                data["bmc"][chave] = st.session_state[session_key]
                 st.rerun()
 
 # Remover linhas vazias (exceto a primeira se for a única)
-itens_sem_vazio = [item for item in st.session_state[f"items_{chave}"] if item.strip()]
+itens_sem_vazio = [item for item in st.session_state[session_key] if item.strip()]
 if itens_sem_vazio:
-    st.session_state[f"items_{chave}"] = itens_sem_vazio
+    st.session_state[session_key] = itens_sem_vazio
     data["bmc"][chave] = itens_sem_vazio
-elif len(st.session_state[f"items_{chave}"]) > 0 and not st.session_state[f"items_{chave}"][0].strip():
+elif len(st.session_state[session_key]) > 0 and not st.session_state[session_key][0].strip():
     # Se só tem uma linha vazia, mantém
     pass
 
@@ -291,8 +303,8 @@ with col_add2:
         key=f"novo_item_{chave}",
         use_container_width=True
     ):
-        st.session_state[f"items_{chave}"].append("")
-        data["bmc"][chave] = st.session_state[f"items_{chave}"]
+        st.session_state[session_key].append("")
+        data["bmc"][chave] = st.session_state[session_key]
         st.rerun()
 
 # ============================================================
@@ -373,8 +385,15 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
+                            # Atualiza os dados permanentes
                             data["bmc"][chave] = itens_existentes
-                            st.success(f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo.")
+                        
+                            # Atualiza também o session_state da tela
+                            st.session_state[session_key] = itens_existentes.copy()
+                        
+                            st.success(
+                                f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo."
+                            )
                             st.rerun()
                         else:
                             st.info("ℹ️ Todas as sugestões já existem no bloco.")
