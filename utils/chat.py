@@ -63,18 +63,18 @@ def render_chat(
            label_visibility="collapsed"
        )
 
-with col_btn:
-    enviar = st.button(
-        "👽 Enviar",
-        key=f"enviar_{messages_key}",
-        width="stretch"
-    )
-
-if not enviar or not pergunta.strip():
-    return
-    st.session_state[messages_key].append(
-        {"role": "user", "content": pergunta}
-    )
+    with col_btn:
+       enviar = st.button(
+           "👽 Enviar",
+           key=f"enviar_{messages_key}",
+           width="stretch"
+       )
+   
+    if not enviar or not pergunta.strip():
+       return
+       st.session_state[messages_key].append(
+           {"role": "user", "content": pergunta}
+       )
 
     with st.chat_message("user"):
         st.markdown(pergunta)
