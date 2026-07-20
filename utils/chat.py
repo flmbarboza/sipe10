@@ -51,15 +51,27 @@ def render_chat(
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Entrada
-    pergunta = st.chat_input(
-        placeholder,
-        key=f"chat_{messages_key}",
+    # Campo de pergunta
+    col_input, col_btn = st.columns([5, 1])
+   
+    with col_input:
+       pergunta = st.text_area(
+           "",
+           placeholder=placeholder,
+           height=80,
+           key=f"pergunta_{messages_key}",
+           label_visibility="collapsed"
+       )
+
+with col_btn:
+    enviar = st.button(
+        "👽 Enviar",
+        key=f"enviar_{messages_key}",
+        width="stretch"
     )
 
-    if not pergunta:
-        return
-
+if not enviar or not pergunta.strip():
+    return
     st.session_state[messages_key].append(
         {"role": "user", "content": pergunta}
     )
