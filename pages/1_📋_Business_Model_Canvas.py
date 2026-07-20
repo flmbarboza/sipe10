@@ -233,22 +233,46 @@ st.divider()
 st.subheader("✍️ Construa sua resposta")
 itens_atuais = data["bmc"].get(chave, [])
 
+# Remover itens vazios automaticamente
+itens_atuais = [item for item in itens_atuais if item and item.strip()]
+data["bmc"][chave] = itens_atuais
+
 if not itens_atuais:
     itens_atuais = [""]
 
-novos_itens = []
+# Exibir itens com botão de remover individual
+itens_para_remover = []
 for i, item in enumerate(itens_atuais):
-    valor = st.text_input(f"Item {i+1}", value=item, key=f"bmc_{chave}_{i}")
+    col1, col2 = st.columns([10, 1])
+    with col1:
+        valor = st.text_input(f"Item {i+1}", value=item, key=f"bmc_{chave}_{i}")
+    with col2:
+        if i > 0:  # Não remover o primeiro item vazio
+            if st.button("✖️", key=f"remove_{chave}_{i}", help="Remover este item"):
+                itens_para_remover.append(i)
+    
     if valor.strip():
-        novos_itens.append(valor.strip())
+        itens_atuais[i] = valor.strip()
+    else:
+        itens_atuais[i] = ""
 
-if novos_itens != data["bmc"].get(chave, []):
-    data["bmc"][chave] = novos_itens
+# Remover itens marcados
+if itens_para_remover:
+    for idx in sorted(itens_para_remover, reverse=True):
+        if idx < len(itens_atuais):
+            itens_atuais.pop(idx)
+    data["bmc"][chave] = [item for item in itens_atuais if item.strip()]
+    st.rerun()
+
+# Atualizar dados removendo vazios
+itens_sem_vazio = [item for item in itens_atuais if item.strip()]
+if itens_sem_vazio != data["bmc"].get(chave, []):
+    data["bmc"][chave] = itens_sem_vazio
 
 # ============================================================
 # ADICIONAR NOVO ITEM
 # ============================================================
-if st.button("➕ Adicionar outro item",key=f"add_{chave}"):
+if st.button("➕ Adicionar outro item", key=f"add_{chave}"):
     data["bmc"][chave].append("")
     st.rerun()
 
@@ -314,13 +338,22 @@ if gerar_sugestao:
                 sugestoes = dados.get("sugestoes", [])
                 
                 if sugestoes and isinstance(sugestoes, list):
-                    # Remover itens vazios e duplicados
                     sugestoes = [s.strip() for s in sugestoes if s and s.strip()]
-                    sugestoes = list(dict.fromkeys(sugestoes))  # Remove duplicatas mantendo ordem
+                    sugestoes = list(dict.fromkeys(sugestoes))
                     
                     if sugestoes:
-                        data["bmc"][chave] = sugestoes
-                        st.success(f"✅ {len(sugestoes)} sugestões inseridas! Revise e edite abaixo.")
+                        itens_existentes = data["bmc"].get(chave, [])
+                        itens_existentes = [item for item in itens_existentes if item and item.strip()]
+                        
+                        # Adicionar novas sugestões sem duplicar
+                        existentes_set = set([item.lower().strip() for item in itens_existentes])
+                        for sugestao in sugestoes:
+                            if sugestao.lower().strip() not in existentes_set:
+                                itens_existentes.append(sugestao)
+                                existentes_set.add(sugestao.lower().strip())
+                        
+                        data["bmc"][chave] = itens_existentes
+                        st.success(f"✅ {len(sugestoes)} sugestões adicionadas! Revise e edite abaixo.")
                         st.rerun()
                     else:
                         st.warning("Nenhuma sugestão válida gerada. Tente novamente.")
