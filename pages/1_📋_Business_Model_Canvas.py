@@ -160,7 +160,7 @@ Exemplos:
 - Distribuidores
 - Parceiros estratégicos
 """,
-        "exemplos": ["Fornecedores","Representantes","Parceiros comerciais"]
+        "exemplos": ["Fornecedores","Representantes","Parceiros comerciales"]
     },
     {
         "chave": "estrutura_custos",
@@ -253,19 +253,79 @@ if st.button("➕ Adicionar outro item",key=f"add_{chave}"):
     st.rerun()
 
 # ============================================================
-# AJUDA DA IA
+# AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
 st.divider()
 col_ia1, col_ia2 = st.columns([3,1])
 with col_ia1:
     st.info(
-        "💡 Não sabe o que escrever? "
-        "Use a IA como consultora para sugerir ideias."
+        "💡 Use a IA para gerar sugestões para este bloco. "
+        "As sugestões serão inseridas automaticamente para você revisar."
     )
 with col_ia2:
-    gerar_sugestao = st.button("🤖 Me ajude",width="stretch",key=f"ia_{chave}")
+    gerar_sugestao = st.button("🤖 Gerar sugestões", width="stretch", key=f"ia_{chave}")
+
 if gerar_sugestao:
-    st.session_state[f"mostrar_ia_{chave}"] = True
+    with st.spinner("🤔 Analisando o modelo de negócio..."):
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
+            
+            empresa = data.get("empresa", {})
+            empresa_nome = empresa.get("nome", "").strip()
+            empresa_setor = empresa.get("setor", "").strip()
+            empresa_cidade = empresa.get("cidade_estado", "").strip()
+            
+            contexto_empresa = f"""
+            EMPRESA: {empresa_nome or "Não informado"}
+            SETOR: {empresa_setor or "Não informado"}
+            LOCALIZAÇÃO: {empresa_cidade or "Não informado"}
+            """
+            
+            prompt_ia = f"""
+            Você é um consultor especialista em Business Model Canvas.
+            
+            Bloco: {etapa["titulo"]}
+            Pergunta orientadora: {etapa["pergunta"]}
+            
+            Contexto da empresa: {contexto_empresa}
+            
+            Gere de 3 a 5 sugestões práticas e realistas para este bloco.
+            As sugestões devem ser respostas diretas à pergunta orientadora.
+            
+            Responda APENAS com um JSON no formato:
+            {{"sugestoes": ["sugestão 1", "sugestão 2", "sugestão 3"]}}
+            
+            Responda em português do Brasil.
+            """
+            
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": "Você é um consultor experiente em estratégia empresarial e Business Model Canvas. Responda APENAS com JSON válido."},
+                    {"role": "user", "content": prompt_ia}
+                ],
+                temperature=0.7
+            )
+            
+            conteudo = response.choices[0].message.content
+            json_match = re.search(r'\{.*\}', conteudo, re.DOTALL)
+            if json_match:
+                dados = json.loads(json_match.group())
+                sugestoes = dados.get("sugestoes", [])
+                
+                if sugestoes:
+                    # Inserir sugestões automaticamente
+                    data["bmc"][chave] = sugestoes
+                    st.success(f"✅ {len(sugestoes)} sugestões inseridas! Revise e edite abaixo.")
+                    st.rerun()
+                else:
+                    st.warning("Nenhuma sugestão gerada. Tente novamente.")
+            else:
+                st.error("Erro ao processar a resposta da IA.")
+                st.code(conteudo)
+                
+        except Exception as e:
+            st.error(f"❌ Erro ao consultar IA: {str(e)}")
 
 # ============================================================
 # NAVEGAÇÃO
@@ -287,78 +347,6 @@ with col_avancar:
         if st.button("🎉 Finalizar Canvas", width="stretch"):
             st.session_state.bmc_finalizado = True
             st.rerun()
-
-# ============================================================
-# ASSISTENTE IA DA ETAPA ATUAL
-# ============================================================
-if st.session_state.get(f"mostrar_ia_{chave}", False):
-    st.divider()
-    st.subheader("🤖 Assistente IA - Sugestões para esta etapa")
-    empresa = data.get("empresa", {})
-    empresa_nome = empresa.get("nome", "").strip()
-    empresa_setor = empresa.get("setor", "").strip()
-    empresa_cidade = empresa.get("cidade_estado", "").strip()
-
-    if not empresa_nome:
-        st.warning(
-            "⚠️ Cadastre primeiro os dados da empresa na página inicial "
-            "para obter sugestões personalizadas."
-        )
-    else:
-        contexto_empresa = f"""
-        EMPRESA: {empresa_nome}
-        SETOR: {empresa_setor or "Não informado"}
-        LOCALIZAÇÃO: {empresa_cidade or "Não informado"}
-        """
-
-        prompt_ia = f"""
-Você é um consultor especialista em Business Model Canvas.
-Sua função é ajudar um empreendedor a construir o bloco: {etapa["titulo"]}
-Pergunta orientadora: {etapa["pergunta"]}
-Contexto da empresa: {contexto_empresa}
-Gere sugestões práticas e realistas. Regras:
-- Gere de 5 a 8 sugestões.
-- Use linguagem simples.
-- Evite respostas genéricas.
-- Considere uma pequena ou média empresa.
-- Não preencha automaticamente o Canvas.
-- Apenas apresente ideias para o empreendedor avaliar.
-
-Responda em português do Brasil.
-"""
-
-        if st.button("✨ Gerar sugestões", key=f"gerar_sugestoes_{chave}"):
-            with st.spinner("🤔 Analisando o modelo de negócio..."):
-                try:
-                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-                    response = client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "Você é um consultor experiente em estratégia empresarial e Business Model Canvas."
-                            },
-                            {
-                                "role": "user",
-                                "content": prompt_ia
-                            }
-                        ],
-                        temperature=0.7
-                    )
-                    
-                    sugestao = response.choices[0].message.content
-                    st.session_state[f"sugestao_ia_{chave}"] = sugestao
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"❌ Erro ao consultar IA: {str(e)}")
-        
-        if st.session_state.get(f"sugestao_ia_{chave}"):
-            st.markdown(st.session_state[f"sugestao_ia_{chave}"])
-            st.info(
-                "💡 Analise as sugestões acima e adicione apenas "
-                "os itens que realmente fazem sentido para sua empresa."
-            )
 
 # ============================================================
 # VISUALIZAÇÃO COMPLETA DO CANVAS
