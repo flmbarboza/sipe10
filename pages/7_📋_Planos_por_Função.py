@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Planos Departamentais", page_icon="🏢", layout="wide")
@@ -59,7 +60,6 @@ def render_tabela(departamento, secao, colunas, titulo):
     else:
         df = pd.DataFrame(columns=colunas)
     
-    # Configuração de colunas com opções predefinidas
     column_config = {}
     for col in colunas:
         if col == "Prioridade":
@@ -127,7 +127,7 @@ def render_tabela(departamento, secao, colunas, titulo):
         
         if novos_dados != dados_atuais:
             data["departamentos"][departamento][secao] = novos_dados
-            
+
 # ========== FUNÇÕES DE IA ==========
 def gerar_plano_departamento_ia(departamento):
     """Gera plano completo para um departamento usando IA"""
@@ -294,75 +294,58 @@ for tab, depto in zip(tabs, DEPARTAMENTOS):
                 "Riscos do departamento"
             )
 
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = "PLANOS DEPARTAMENTAIS:\n\n"
+    for depto in DEPARTAMENTOS:
+        dados = data["departamentos"][depto]
+        contexto += f"{depto}:\n"
+        if dados["objetivos"]:
+            contexto += f"  Objetivos: {len(dados['objetivos'])}\n"
+            for obj in dados["objetivos"][:2]:
+                contexto += f"    • {obj.get('Objetivo', '')}\n"
+        if dados["acoes"]:
+            contexto += f"  Ações: {len(dados['acoes'])}\n"
+        if dados["indicadores"]:
+            contexto += f"  Indicadores: {len(dados['indicadores'])}\n"
+        if dados["recursos"]:
+            contexto += f"  Recursos: {len(dados['recursos'])}\n"
+        if dados["riscos"]:
+            contexto += f"  Riscos: {len(dados['riscos'])}\n"
+
+    system_prompt = """
+    Você é um assistente especialista em Planejamento Estratégico Departamental.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Estruturar planos para cada departamento
+    - Definir objetivos e ações departamentais
+    - Estabelecer indicadores de desempenho
+    - Identificar recursos necessários e riscos
+    - Conectar os planos departamentais à estratégia geral
+    """
+
+    render_chat(
+        messages_key="messages_departamentos",
+        placeholder="Pergunte ao assistente sobre os planos departamentais...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Orçamento", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Orçamento", width="stretch"):
         st.switch_page("pages/8_💰_Orçamento.py")
-
-# ========== ASSISTENTE IA ==========
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com Planos Departamentais")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", width="stretch"):
-        st.session_state.messages_departamentos = []
-        st.rerun()
-
-if "messages_departamentos" not in st.session_state:
-    st.session_state.messages_departamentos = []
-
-for msg in st.session_state.messages_departamentos:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre os planos departamentais..."):
-    st.session_state.messages_departamentos.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            contexto = "PLANOS DEPARTAMENTAIS:\n\n"
-            for depto in DEPARTAMENTOS:
-                dados = data["departamentos"][depto]
-                contexto += f"{depto}:\n"
-                if dados["objetivos"]:
-                    contexto += f"  Objetivos: {len(dados['objetivos'])}\n"
-                if dados["acoes"]:
-                    contexto += f"  Ações: {len(dados['acoes'])}\n"
-                if dados["indicadores"]:
-                    contexto += f"  Indicadores: {len(dados['indicadores'])}\n"
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Planejamento Estratégico Departamental.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_departamentos[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_departamentos.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
