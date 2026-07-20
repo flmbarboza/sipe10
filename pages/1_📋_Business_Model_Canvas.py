@@ -226,88 +226,76 @@ with st.expander("📌 Exemplos", expanded=False):
         st.markdown(f"- {exemplo}")
 
 st.divider()
+# ============================================================
+# ÁREA DE PREENCHIMENTO
+# ============================================================
 
-# ============================================================
-# ÁREA DE PREENCHIMENTO - FORMATO TABELA
-# ============================================================
 st.subheader("✍️ Construa sua resposta")
-itens_atuais = data["bmc"].get(chave, [])
-
-# Remover itens vazios automaticamente
-itens_atuais = [item for item in itens_atuais if item and item.strip()]
-data["bmc"][chave] = itens_atuais
-
-# Se estiver vazio, iniciar com uma linha vazia
-if not itens_atuais:
-    itens_atuais = [""]
-else:
-    itens_atuais = itens_atuais[:]
-    
-# Criar DataFrame para edição em tabela
-if not itens_atuais:
-    itens_atuais = [""]
-
-for i, item in enumerate(itens_atuais):
-
-    col_item, col_remove = st.columns([8,1])
-
-    with col_item:
-        novo_item = st.text_input(
-            f"Item {i+1}",
-            value=item,
-            key=f"{chave}_item_{i}",
-            label_visibility="collapsed",
-            placeholder="Digite uma informação..."
-        )
-
-    with col_remove:
-        if st.button(
-            "🗑️",
-            key=f"{chave}_remove_{i}",
-            help="Remover item"
-        ):
-            data["bmc"][chave].pop(i)
-            st.rerun()
-
-
-    if novo_item.strip() != item:
-        data["bmc"][chave][i] = novo_item.strip()
-
-# Botão adicionar nova linha
-if st.button(
-    "➕ Adicionar item",
-    key=f"{chave}_add"
-):
-    data["bmc"][chave].append("")
-    st.rerun()
-    
-# Editor de tabela
-edited_df = st.data_editor(
-    df,
-    num_rows="fixed",
-    use_container_width=True,
-    hide_index=True,
-    key=f"table_{chave}",
-    column_config={
-        "Item": st.column_config.TextColumn(
-            "Item",
-            width="large"
-        )
-    },
-    height=150
+st.markdown(
+    "Digite uma ideia por linha. Não se preocupe em escrever perfeitamente agora. "
+    "Você poderá editar tudo depois."
 )
 
-# Processar dados editados
-if edited_df is not None:
-    novos_itens = []
-    for _, row in edited_df.iterrows():
-        valor = str(row.get("Item", "")).strip()
-        if valor:
-            novos_itens.append(valor)
-    
-    if novos_itens != data["bmc"].get(chave, []):
-        data["bmc"][chave] = novos_itens
+garantir_bloco(chave)
 
+# sempre manter pelo menos um campo
+if len(data["bmc"][chave]) == 0:
+    data["bmc"][chave] = [""]
+
+# remove linhas completamente vazias (mantém uma)
+itens = [i for i in data["bmc"][chave] if i.strip()]
+
+if len(itens) == 0:
+    itens = [""]
+
+data["bmc"][chave] = itens
+
+
+for indice in range(len(data["bmc"][chave])):
+
+    col1, col2 = st.columns([18,1], vertical_alignment="center")
+
+    with col1:
+
+        valor = st.text_input(
+            label=f"Item {indice+1}",
+            value=data["bmc"][chave][indice],
+            placeholder="Digite uma informação...",
+            label_visibility="collapsed",
+            key=f"{chave}_{indice}"
+        )
+
+        data["bmc"][chave][indice] = valor
+
+    with col2:
+
+        # só permite remover se existir mais de um campo
+        if len(data["bmc"][chave]) > 1:
+
+            if st.button(
+                "🗑️",
+                key=f"remover_{chave}_{indice}",
+                help="Remover este item",
+                use_container_width=True
+            ):
+
+                data["bmc"][chave].pop(indice)
+                st.rerun()
+
+
+col_add1, col_add2 = st.columns([1,3])
+
+with col_add2:
+
+    if st.button(
+        "➕ Adicionar outro item",
+        key=f"novo_item_{chave}",
+        use_container_width=True
+    ):
+
+        data["bmc"][chave].append("")
+        st.rerun()
+        
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
@@ -386,7 +374,7 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
-                            data["bmc"][chave] = itens_existentes
+                            data["bmc"][chave] = [i for i in itens_existentes if i.strip()]
                             st.success(f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo.")
                             st.rerun()
                         else:
