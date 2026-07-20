@@ -250,51 +250,53 @@ if len(itens) == 0:
 
 data["bmc"][chave] = itens
 
+# sincroniza os campos apenas quando eles ainda não existem
+for i, valor in enumerate(data["bmc"][chave]):
+    chave_widget = f"{chave}_{i}"
+    if chave_widget not in st.session_state:
+        st.session_state[chave_widget] = valor
 
 for indice in range(len(data["bmc"][chave])):
-
+    widget_key = f"{chave}_{indice}"
     col1, col2 = st.columns([18,1], vertical_alignment="center")
 
     with col1:
-
-        valor = st.text_input(
-            label=f"Item {indice+1}",
-            value=data["bmc"][chave][indice],
+        st.text_input(
+            "",
+            key=widget_key,
             placeholder="Digite uma informação...",
-            label_visibility="collapsed",
-            key=f"{chave}_{indice}"
+            label_visibility="collapsed"
         )
 
-        data["bmc"][chave][indice] = valor
-
     with col2:
-
-        # só permite remover se existir mais de um campo
         if len(data["bmc"][chave]) > 1:
-
             if st.button(
                 "🗑️",
-                key=f"remover_{chave}_{indice}",
-                help="Remover este item",
+                key=f"remover_{widget_key}",
                 use_container_width=True
             ):
-
                 data["bmc"][chave].pop(indice)
+                del st.session_state[widget_key]
                 st.rerun()
 
-
+novos = []
+for i in range(len(data["bmc"][chave])):
+    valor = st.session_state.get(f"{chave}_{i}", "").strip()
+    if valor:
+        novos.append(valor)
+data["bmc"][chave] = novos
 col_add1, col_add2 = st.columns([1,3])
 
 with col_add2:
-
     if st.button(
         "➕ Adicionar outro item",
         key=f"novo_item_{chave}",
         use_container_width=True
     ):
-
         data["bmc"][chave].append("")
-        st.rerun()
+        nova_posicao = len(data["bmc"][chave]) - 1
+        st.session_state[f"{chave}_{nova_posicao}"] = ""
+        st.rerun()   
         
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
@@ -374,7 +376,9 @@ if gerar_sugestao:
                                 adicionados += 1
                         
                         if adicionados > 0:
-                            data["bmc"][chave] = [i for i in itens_existentes if i.strip()]
+                            # sincroniza os widgets com os novos dados
+                            for i, item in enumerate(itens_existentes):
+                                st.session_state[f"{chave}_{i}"] = item
                             st.success(f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo.")
                             st.rerun()
                         else:
