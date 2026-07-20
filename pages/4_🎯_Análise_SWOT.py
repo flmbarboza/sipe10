@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Análise SWOT", page_icon="🎯", layout="wide")
@@ -103,7 +104,6 @@ def gerar_analise_swot(quadrante=None):
         if quadrante:
             chave, titulo, ajuda = next(q for q in QUADRANTES if q[0] == quadrante)
             
-            # Se for oportunidades ou ameaças, incluir dados do PESTEL/Porter
             if chave in ["oportunidades", "ameacas"]:
                 contexto_adicional = f"\nDADOS JÁ IDENTIFICADOS EM ANÁLISES ANTERIORES:{contexto_adicional}\n"
             
@@ -168,7 +168,7 @@ col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
 with col_gerar1:
     st.caption("A IA vai gerar sugestões para todos os 4 quadrantes da SWOT")
 with col_gerar2:
-    if st.button("🔄 Gerar SWOT Completa", use_container_width=True):
+    if st.button("🔄 Gerar SWOT Completa", width="stretch"):
         with st.spinner("Gerando análise SWOT completa..."):
             resultado = gerar_analise_swot()
             if resultado:
@@ -188,7 +188,7 @@ with col_gerar2:
                 else:
                     st.info("ℹ️ Todos os itens sugeridos já existem.")
 with col_gerar3:
-    if st.button("🗑️ Limpar SWOT", use_container_width=True):
+    if st.button("🗑️ Limpar SWOT", width="stretch"):
         for chave, _, _ in QUADRANTES:
             data["swot"][chave] = []
         st.rerun()
@@ -245,7 +245,7 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
         
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
-            if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", use_container_width=True):
+            if st.button(f"🤖 Sugerir", key=f"sugerir_{chave}", width="stretch"):
                 with st.spinner(f"Gerando sugestões para {titulo}..."):
                     resultado = gerar_analise_swot(chave)
                     if resultado and "itens" in resultado and isinstance(resultado["itens"], list):
@@ -266,9 +266,67 @@ for i, (chave, titulo, ajuda) in enumerate(QUADRANTES):
                         st.warning("A IA não retornou itens válidos. Tente novamente.")
         
         with col_btn2:
-            if st.button(f"🗑️", key=f"limpar_{chave}", use_container_width=True):
+            if st.button(f"🗑️", key=f"limpar_{chave}", width="stretch"):
                 data["swot"][chave] = []
                 st.rerun()
+
+# ========== ASSISTENTE IA PARA AJUDA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    swot_atual = ""
+    for chave, titulo, _ in QUADRANTES:
+        itens = data["swot"].get(chave, [])
+        swot_atual += f"\n{titulo}:\n"
+        if itens:
+            for item in itens:
+                swot_atual += f"  • {item.get('descricao', '')}\n"
+        else:
+            swot_atual += "  (vazio)\n"
+
+    contexto = f"""
+    SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+
+    EMPRESA:
+    {empresa_nome}
+
+    SETOR:
+    {empresa.get('setor', 'Não informado')}
+
+    LOCALIZAÇÃO:
+    {empresa.get('cidade_estado', 'Não informado')}
+
+    ANÁLISE SWOT ATUAL:
+    {swot_atual}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Análise SWOT e Estratégia.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Identificar forças, fraquezas, oportunidades e ameaças
+    - Classificar corretamente cada item nos quadrantes da SWOT
+    - Relacionar os fatores internos e externos
+    - Entender como a SWOT se conecta com as demais análises
+    """
+
+    render_chat(
+        messages_key="messages_swot",
+        placeholder="Pergunte ao assistente sobre sua análise SWOT...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
 
 st.divider()
 st.info(
@@ -279,71 +337,5 @@ st.info(
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Planejamento Estratégico", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Planejamento Estratégico", width="stretch"):
         st.switch_page("pages/5_🧭_Planejamento_Estratégico.py")
-        
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com a Análise SWOT")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_swot = []
-        st.rerun()
-
-if "messages_swot" not in st.session_state:
-    st.session_state.messages_swot = []
-
-for msg in st.session_state.messages_swot:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre sua análise SWOT..."):
-    st.session_state.messages_swot.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            swot_atual = ""
-            for chave, titulo, _ in QUADRANTES:
-                itens = data["swot"].get(chave, [])
-                swot_atual += f"\n{titulo}:\n"
-                if itens:
-                    for item in itens:
-                        swot_atual += f"  • {item.get('descricao', '')}\n"
-                else:
-                    swot_atual += "  (vazio)\n"
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Análise SWOT e Estratégia.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-ANÁLISE SWOT ATUAL:
-{swot_atual}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_swot[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_swot.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
