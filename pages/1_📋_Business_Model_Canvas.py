@@ -1,640 +1,481 @@
 import streamlit as st
+import pandas as pd
 import json
 import re
-import pandas as pd
 from openai import OpenAI
-
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 
-st.set_page_config(
-    page_title="Business Model Canvas",
-    page_icon="📋",
-    layout="wide"
-)
+# ============================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================================
+st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
 
 init_data()
 data = get_data()
 
-# ---------- Barra lateral ----------
 st.sidebar.title("🧭 Gestor Estratégico")
 sidebar_data_controls()
 
-# ---------- Título ----------
+# ============================================================
+# TÍTULO
+# ============================================================
 st.title("📋 Business Model Canvas")
 st.caption(
-    "Preencha os 9 blocos do seu modelo de negócio seguindo a estrutura do Canvas. "
-    "Cada bloco pode ter múltiplos itens."
+    "Construa seu modelo de negócio passo a passo. "
+    "O SIPE irá guiá-lo desde a identificação dos clientes até a estrutura financeira."
 )
 
-# ========== DEFINIÇÃO DOS BLOCOS ==========
-BLOCOS = [
-    ("proposta_valor", "💎 Proposta de Valor",
-     "Que problema você resolve? Que valor entrega ao cliente?"),
-
-    ("segmentos_clientes", "🎯 Segmentos de Clientes",
-     "Para quem vocês criam valor? Quem são os clientes mais importantes?"),
-
-    ("canais", "📡 Canais",
-     "Como a proposta de valor chega até o cliente (comunicação, venda, entrega)?"),
-
-    ("relacionamento_clientes", "❤️ Relacionamento com Clientes",
-     "Como vocês conquistam, mantêm e fazem crescer a base de clientes?"),
-
-    ("parcerias_chave", "🤝 Parcerias-Chave",
-     "Quem são seus principais fornecedores e parceiros? O que vocês trocam?"),
-
-    ("atividades_chave", "⚙️ Atividades-Chave",
-     "Quais atividades essenciais sua proposta de valor exige?"),
-
-    ("recursos_chave", "🧱 Recursos-Chave",
-     "Que recursos (físicos, humanos, financeiros, intelectuais) são indispensáveis?"),
-
-    ("estrutura_custos", "💸 Estrutura de Custos",
-     "Quais são os custos mais importantes do modelo de negócio?"),
-
-    ("fontes_receita", "💰 Fontes de Receita",
-     "Por qual valor os clientes estão dispostos a pagar, e como pagam?"),
-]
-
-# Garantir estrutura inicial
+# ============================================================
+# INICIALIZAÇÃO DOS DADOS
+# ============================================================
 if "bmc" not in data:
     data["bmc"] = {}
+if "bmc_etapa" not in st.session_state:
+    st.session_state.bmc_etapa = 0
 
-for chave, _, _ in BLOCOS:
+# ============================================================
+# ORDEM GUIADA DO CANVAS
+# ============================================================
+ETAPAS_BMC = [
+    {
+        "chave": "segmentos_clientes",
+        "titulo": "🎯 Segmentos de Clientes",
+        "pergunta": "Quem são as pessoas ou organizações que compram sua solução?",
+        "explicacao": """
+Os clientes são o ponto de partida do modelo de negócio.
+
+Identifique:
+- Quem compra seu produto ou serviço?
+- Quem utiliza sua solução?
+- Existem diferentes grupos de clientes?
+""",
+        "exemplos": ["Consumidores finais","Pequenas empresas","Indústrias","Órgãos públicos"]
+    },
+
+    {
+        "chave": "proposta_valor",
+        "titulo": "💎 Proposta de Valor",
+        "pergunta": "Qual problema você resolve e qual valor entrega ao cliente?",
+        "explicacao": """
+A proposta de valor explica por que o cliente escolhe sua empresa.
+
+Pense:
+- Qual necessidade você atende?
+- Que benefício entrega?
+- O que diferencia sua solução?
+""",
+        "exemplos": ["Preço acessível","Maior qualidade","Conveniência","Experiência diferenciada"]
+    },
+
+    {
+        "chave": "canais",
+        "titulo": "📡 Canais",
+        "pergunta": "Como o cliente encontra, compra e recebe sua solução?",
+        "explicacao": """
+Os canais representam os meios utilizados para chegar até o cliente.
+
+Considere:
+- Divulgação
+- Venda
+- Entrega
+- Atendimento
+""",
+        "exemplos": ["Loja física","Instagram","Site","WhatsApp"]
+    },
+
+    {
+        "chave": "relacionamento_clientes",
+        "titulo": "❤️ Relacionamento com Clientes",
+        "pergunta": "Como sua empresa conquista e mantém clientes?",
+        "explicacao": """
+Defina como será a interação com seus clientes.
+
+Exemplos:
+- Atendimento personalizado
+- Programa de fidelidade
+- Comunidade
+- Suporte pós-venda
+""",
+        "exemplos": ["Atendimento personalizado","Programa de fidelidade","Pós-venda"]
+    },
+
+    {
+        "chave": "fontes_receita",
+        "titulo": "💰 Fontes de Receita",
+        "pergunta": "Como sua empresa gera receita?",
+        "explicacao": """
+Aqui descrevemos como o negócio transforma valor entregue em dinheiro.
+
+Considere:
+- O que o cliente paga?
+- Como paga?
+- Qual modelo de cobrança?
+""",
+        "exemplos": ["Venda direta","Assinatura mensal","Comissão","Licenciamento"]
+    },
+
+    {
+        "chave": "recursos_chave",
+        "titulo": "🧱 Recursos-Chave",
+        "pergunta": "Quais recursos são necessários para o negócio funcionar?",
+        "explicacao": """
+São os recursos indispensáveis para entregar sua proposta de valor.
+
+Podem ser:
+- Pessoas
+- Equipamentos
+- Tecnologia
+- Marca
+- Capital
+""",
+        "exemplos": ["Equipe especializada","Máquinas","Sistema de gestão"]
+    },
+
+    {
+        "chave": "atividades_chave",
+        "titulo": "⚙️ Atividades-Chave",
+        "pergunta": "Quais atividades precisam ser realizadas?",
+        "explicacao": """
+São as principais ações que fazem o modelo funcionar.
+
+Exemplos:
+- Produção
+- Desenvolvimento
+- Atendimento
+- Logística
+""",
+        "exemplos": ["Produção","Marketing","Entrega"]
+    },
+
+    {
+        "chave": "parcerias_chave",
+        "titulo": "🤝 Parcerias-Chave",
+        "pergunta": "Quem são os parceiros importantes para o negócio?",
+        "explicacao": """
+Empresas e pessoas que ajudam seu negócio a funcionar melhor.
+
+Exemplos:
+- Fornecedores
+- Distribuidores
+- Parceiros estratégicos
+""",
+        "exemplos": ["Fornecedores","Representantes","Parceiros comerciais"]
+    },
+    {
+        "chave": "estrutura_custos",
+        "titulo": "💸 Estrutura de Custos",
+        "pergunta": "Quais são os principais custos do negócio?",
+        "explicacao": """
+Liste os principais gastos necessários para operar.
+
+Considere:
+- Custos fixos
+- Custos variáveis
+- Investimentos
+""",
+        "exemplos": ["Salários", "Aluguel", "Matéria-prima"]
+    }
+]
+
+# ============================================================
+# FUNÇÃO PARA GARANTIR ESTRUTURA DOS DADOS
+# ============================================================
+def garantir_bloco(chave):
     if chave not in data["bmc"]:
         data["bmc"][chave] = []
+    if not isinstance(data["bmc"][chave], list):
+        data["bmc"][chave] = []
 
-
-# ========== INFORMAÇÕES ADICIONAIS ==========
-with st.expander(
-    "📋 Informações para o Business Model Canvas",
-    expanded=False
-):
-
-    st.markdown(
-        "**Preencha as informações abaixo para ajudar a IA "
-        "a gerar sugestões mais precisas:**"
-    )
-
-    if "bmc_info" not in data:
-        data["bmc_info"] = {}
-    col_info1, col_info2 = st.columns(2)
-
-    with col_info1:
-        descricao_negocio = st.text_area(
-            "📝 Descrição do negócio",
-            value=data["bmc_info"].get("descricao", ""),
-            placeholder="Descreva brevemente o que sua empresa faz...",
-            height=80,
-            key="bmc_descricao"
-        )
-
-        diferenciais = st.text_area(
-            "⭐ Diferenciais competitivos",
-            value=data["bmc_info"].get("diferenciais", ""),
-            placeholder=(
-                "Ex: Tecnologia proprietária, equipe especializada, "
-                "parcerias exclusivas..."
-            ),
-            height=80,
-            key="bmc_diferenciais"
-        )
-
-    with col_info2:
-        publico_alvo = st.text_area(
-            "🎯 Público-alvo",
-            value=data["bmc_info"].get("publico_alvo", ""),
-            placeholder=("Ex: Pequenas empresas, consumidores finais, indústrias..."),
-            height=80,
-            key="bmc_publico_alvo"
-        )
-        observacoes_bmc = st.text_area(
-            "📝 Observações adicionais",
-            value=data["bmc_info"].get("observacoes", ""),
-            placeholder="Qualquer informação adicional relevante...",
-            height=80,
-            key="bmc_observacoes"
-        )
-
-    # Salvamento automático
-    data["bmc_info"]["descricao"] = descricao_negocio
-    data["bmc_info"]["diferenciais"] = diferenciais
-    data["bmc_info"]["publico_alvo"] = publico_alvo
-    data["bmc_info"]["observacoes"] = observacoes_bmc
+# ============================================================
+# ETAPA ATUAL DO CANVAS
+# ============================================================
+etapa_atual = st.session_state.bmc_etapa
+etapa = ETAPAS_BMC[etapa_atual]
+chave = etapa["chave"]
+garantir_bloco(chave)
+# ============================================================
+# BARRA DE PROGRESSO
+# ============================================================
+progresso = (etapa_atual + 1) / len(ETAPAS_BMC)
+st.progress(progresso,text=f"Etapa {etapa_atual + 1} de {len(ETAPAS_BMC)}")
 
 st.divider()
-# ========== INFORMAÇÕES DA EMPRESA ==========
-empresa = data.get("empresa", {})
-empresa_nome = empresa.get("nome", "").strip()
-empresa_setor = empresa.get("setor", "").strip()
-empresa_cidade = empresa.get("cidade_estado", "").strip()
-empresa_responsavel = empresa.get("responsavel", "").strip()
+# ============================================================
+# TÍTULO DA ETAPA
+# ============================================================
+st.header(etapa["titulo"])
+st.markdown(
+    f"""
+### 🤔 Pergunta principal
 
+**{etapa["pergunta"]}**
+"""
+)
 
-if not empresa_nome:
-    st.warning(
-        "⚠️ Cadastre os dados da empresa na página inicial "
-        "para obter sugestões mais precisas da IA.",
-        icon="⚠️"
-    )
+# ============================================================
+# EXPLICAÇÃO DIDÁTICA
+# ============================================================
+with st.expander("💡 Entenda esta etapa", expanded=True):
+    st.markdown(etapa["explicacao"])
 
-# ========== BOTÕES DE AÇÃO COM IA ==========
+with st.expander("📌 Exemplos", expanded=False):
+    for exemplo in etapa["exemplos"]:
+        st.markdown(f"- {exemplo}")
 
-st.subheader("🚀 Ações com IA")
+st.divider()
+# ============================================================
+# ÁREA DE PREENCHIMENTO
+# ============================================================
+st.subheader("✍️ Construa sua resposta")
+itens_atuais = data["bmc"].get(chave, [])
 
-col_gerar1, col_gerar2, col_gerar3 = st.columns([3, 1, 1])
+# Caso não exista nenhum item
+if not itens_atuais:
+    itens_atuais = [""]
 
-with col_gerar1:
-    st.caption(
-        "A IA vai analisar suas informações e gerar conteúdo "
-        "para todos os 9 blocos do BMC."
-    )
+novos_itens = []
+for i, item in enumerate(itens_atuais):
+    valor = st.text_input(f"Item {i+1}", value=item, key=f"bmc_{chave}_{i}")
+    if valor.strip():
+        novos_itens.append(valor.strip())
 
-with col_gerar2:
-    gerar_bmc = st.button(
-        "🔄 Gerar BMC Completo",
-        width="stretch"
-    )
+# Atualiza automaticamente
+if novos_itens != data["bmc"].get(chave, []):
+    data["bmc"][chave] = novos_itens
 
-with col_gerar3:
-    limpar_bmc = st.button(
-        "🗑️ Limpar BMC",
-        width="stretch",
-        help="Remove todo o conteúdo do BMC"
-    )
-
-if limpar_bmc:
-    for chave, _, _ in BLOCOS:
-        data["bmc"][chave] = []
-    data["bmc_info"] = {}
-    st.success("✅ Business Model Canvas limpo!")
+# ============================================================
+# ADICIONAR NOVO ITEM
+# ============================================================
+if st.button("➕ Adicionar outro item",key=f"add_{chave}"):
+    data["bmc"][chave].append("")
     st.rerun()
 
-# ========== GERAR BMC COM IA ==========
-if gerar_bmc:
-    if not descricao_negocio and not empresa_nome:
-        st.warning(
-            "⚠️ Informe pelo menos a descrição do negócio "
-            "ou o nome da empresa."
-        )
-
-    else:
-        with st.spinner("🧠 Gerando Business Model Canvas com IA..."):
-            try:
-                client = OpenAI(
-                    api_key=st.secrets["OPENAI_API_KEY"],
-                    base_url="https://openrouter.ai/api/v1"
-                )
-                prompt = f"""
-
-Você é um consultor sênior de estratégia especializado
-em Business Model Canvas.
-
-INFORMAÇÕES DA EMPRESA:
-
-Nome: {empresa_nome or "Não informado"}
-
-Setor: {empresa_setor or "Não informado"}
-
-Cidade: {empresa_cidade or "Não informado"}
-
-Responsável: {empresa_responsavel or "Não informado"}
-
-Descrição: {descricao_negocio or "Não informado"}
-
-Diferenciais: {diferenciais or "Não informado"}
-
-Público-alvo: {publico_alvo or "Não informado"}
-
-Observações: {observacoes_bmc or "Não informado"}
-
-
-Preencha os 9 blocos do Business Model Canvas.
-
-Cada bloco deve possuir pelo menos 3 itens.
-
-Retorne APENAS JSON válido:
-
-{{
-"proposta_valor": [],
-"segmentos_clientes": [],
-"canais": [],
-"relacionamento_clientes": [],
-"parcerias_chave": [],
-"atividades_chave": [],
-"recursos_chave": [],
-"estrutura_custos": [],
-"fontes_receita": []
-}}
-
-Cada item deve ser uma frase curta e objetiva.
-"""
-                response = client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content":
-                            "Você é um consultor especialista em estratégia. "
-                            "Retorne somente JSON válido."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    temperature=0.7
-                )
-
-                conteudo = response.choices[0].message.content
-                json_match = re.search(
-                    r'\{.*\}',
-                    conteudo,
-                    re.DOTALL
-                )
-
-                if json_match:
-                    dados = json.loads(
-                        json_match.group()
-                    )
-
-                else:
-                    dados = json.loads(conteudo)
-
-                atualizados = 0
-
-                for chave, _, _ in BLOCOS:
-                    if (
-                        chave in dados
-                        and isinstance(dados[chave], list)
-                        and dados[chave]
-                    ):
-                        data["bmc"][chave] = dados[chave]
-                        atualizados += 1
-
-                if atualizados:
-                    st.success(f"✅ {atualizados} blocos preenchidos pela IA!")
-                    st.rerun()
-
-                else:
-                    st.warning("⚠️ A IA não retornou dados válidos.")
-
-            except Exception as e:
-                st.error(f"❌ Erro ao gerar BMC: {str(e)}")
-
+# ============================================================
+# AJUDA DA IA
+# ============================================================
 st.divider()
-
-# ========== EXIBIÇÃO DOS BLOCOS ==========
-st.subheader("📝 Preencha os blocos do Business Model Canvas")
-
-def render_bloco(
-    chave,
-    titulo,
-    descricao,
-    altura=150
-):
-    st.markdown(f"**{titulo}**")
-    st.caption(descricao)
-    itens = data["bmc"].get(chave,[])
-
-
-    if itens:
-        df = pd.DataFrame({"item": itens})
-
-    else:
-        df = pd.DataFrame(columns=["item"])
-
-    df_hash = hash(str(itens))
-
-    edited = st.data_editor(
-        df,
-        num_rows="dynamic",
-        width="stretch",
-        hide_index=True,
-        height=altura,
-        key=f"bmc_editor_{chave}_{df_hash}",
-
-        column_config={
-            "item":
-            st.column_config.TextColumn(
-                "Item",
-                width="large"
-            )
-        }
+col_ia1, col_ia2 = st.columns([3,1])
+with col_ia1:
+    st.info(
+        "💡 Não sabe o que escrever? "
+        "Use a IA como consultora para sugerir ideias."
     )
+with col_ia2:
+    gerar_sugestao = st.button("🤖 Me ajude",width="stretch",key=f"ia_{chave}")
+if gerar_sugestao:
+    st.session_state[f"mostrar_ia_{chave}"] = True
 
-    if edited is not None:
-        novos = []
-        for _, row in edited.iterrows():
-            item = str(row.get("item", "")).strip()
-            if item:
-                novos.append(item)
-        if novos != data["bmc"].get(chave, []):
-            data["bmc"][chave] = novos
+# ============================================================
+# NAVEGAÇÃO
+# ============================================================
+st.divider()
+col_voltar, col_meio, col_avancar = st.columns([1,2,1])
+with col_voltar:
+    if etapa_atual > 0:
+        if st.button("⬅️ Voltar", width="stretch"):
+            st.session_state.bmc_etapa -= 1
             st.rerun()
 
-    if st.button("🤖 Sugerir", key=f"sugerir_{chave}", width="stretch"):
-        with st.spinner(f"Gerando sugestão para {titulo}..."):
-            try:
-                client = OpenAI(
-                    api_key=st.secrets["OPENAI_API_KEY"],
-                    base_url="https://openrouter.ai/api/v1"
-                )
-                prompt = f"""
+with col_avancar:
+    if etapa_atual < len(ETAPAS_BMC)-1:
+        if st.button("Próxima etapa ➡️",width="stretch"):
+            st.session_state.bmc_etapa += 1
+            st.rerun()
+    else:
+        if st.button("🎉 Finalizar Canvas", width="stretch"):
+            st.session_state.bmc_finalizado = True
+            st.rerun()
 
-Empresa: {empresa_nome}
+# ============================================================
+# ASSISTENTE IA DA ETAPA ATUAL
+# ============================================================
+if st.session_state.get(f"mostrar_ia_{chave}", False):
+    st.divider()
+    st.subheader("🤖 Assistente IA - Sugestões para esta etapa")
+    empresa = data.get("empresa", {})
+    empresa_nome = empresa.get("nome", "").strip()
+    empresa_setor = empresa.get("setor", "").strip()
+    empresa_cidade = empresa.get("cidade_estado", "").strip()
 
-Setor: {empresa_setor}
+    if not empresa_nome:
+        st.warning(
+            "⚠️ Cadastre primeiro os dados da empresa na página inicial "
+            "para obter sugestões personalizadas.")
+    else:
+        contexto_empresa = f"""
+        EMPRESA: {empresa_nome}
+        SETOR: {empresa_setor or "Não informado"}
+        LOCALIZAÇÃO:{empresa_cidade or "Não informado"}
+        """
 
-Descrição: {descricao_negocio or "Não informado"}
 
-Bloco: {titulo}
+        prompt_ia = f"""
+Você é um consultor especialista em Business Model Canvas.
+Sua função é ajudar um empreendedor a construir o bloco: {etapa["titulo"]}
+Pergunta orientadora: {etapa["pergunta"]}
+Contexto da empresa: {contexto_empresa}
+Gere sugestões práticas e realistas. Regras:
+- Gere de 5 a 8 sugestões.
+- Use linguagem simples.
+- Evite respostas genéricas.
+- Considere uma pequena ou média empresa.
+- Não preencha automaticamente o Canvas.
+- Apenas apresente ideias para o empreendedor avaliar.
 
-Descrição do bloco: {descricao}
-
-Gere 3 a 5 sugestões práticas.
-
-Responda APENAS JSON:
-
-{{"itens":["item1","item2","item3"]}}
+Responda em português do Brasil.
 """
 
-                response = client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[
-                        {
-                            "role":"system",
-                            "content":
-                            "Retorne somente JSON válido."
-                        },
-                        {
-                            "role":"user",
-                            "content":prompt
-                        }
-                    ],
-                    temperature=0.7
-                )
+        if st.button("✨ Gerar sugestões",key=f"gerar_sugestoes_{chave}"):
+            with st.spinner("🤔 Analisando o modelo de negócio..."):
+                try:
+                    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"],base_url="https://openrouter.ai/api/v1")
+                    response = client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content":
+                                "Você é um consultor experiente em estratégia empresarial."
+                            },
+                            {
+                                "role": "user",
+                                "content": prompt_ia
+                            }],temperature=0.7)
 
-                resposta = response.choices[0].message.content
-                json_match = re.search(
-                    r'\{.*\}',
-                    resposta,
-                    re.DOTALL
-                )
+                    sugestao = response
+                    (
+                        response
+                        .choices[0]
+                        .message
+                        .content
+                    )
+                    st.session_state[f"sugestao_ia_{chave}"] = sugestao
 
-                dados = json.loads(
-                    json_match.group()
-                    if json_match
-                    else resposta
-                )
-
-                existentes = data["bmc"][chave]
-
-                adicionados = 0
-
-                for item in dados.get("itens", []):
-                    if item not in existentes:
-                        existentes.append(item)
-                        adicionados += 1
-
-                if adicionados:
-                    data["bmc"][chave] = existentes
-                    st.success(f"✅ {adicionados} itens adicionados.")
-                    st.rerun()
-
-            except Exception as e:
-                st.error(f"❌ Erro: {str(e)}")
-
-# ========== LAYOUT DO CANVAS ==========
-col_esquerda, col_centro, col_direita = st.columns([1, 1.2, 1])
-with col_esquerda:
-    st.markdown("### 🏗️ Infraestrutura")
-    for chave, titulo, desc in BLOCOS:
-        if chave in [
-            "parcerias_chave",
-            "atividades_chave",
-            "recursos_chave"
-        ]:
-            render_bloco(
-                chave,
-                titulo,
-                desc,
-                150
+                except Exception as e:
+                    st.error(f"❌ Erro ao consultar IA: {str(e)}")
+        # Exibir resultado salvo
+        if st.session_state.get(f"sugestao_ia_{chave}"):
+            st.markdown(st.session_state[f"sugestao_ia_{chave}"])
+            st.info(
+                "💡 Analise as sugestões acima e adicione apenas "
+                "os itens que realmente fazem sentido para sua empresa."
             )
 
-with col_centro:
-    st.markdown("### 💎 Proposta de Valor")
-
-    render_bloco(
-        "proposta_valor",
-        "💎 Proposta de Valor",
-        "Que problema você resolve? Que valor entrega ao cliente?",
-        250
-    )
-
-    st.markdown("### 📡 Canais e Relacionamento")
-
-    for chave, titulo, desc in BLOCOS:
-        if chave in [
-            "canais",
-            "relacionamento_clientes"
-        ]:
-            render_bloco(
-                chave,
-                titulo,
-                desc,
-                150
-            )
-
-with col_direita:
-    st.markdown("### 👥 Clientes")
-    render_bloco(
-        "segmentos_clientes",
-        "🎯 Segmentos de Clientes",
-        "Para quem vocês criam valor?",
-        200
-    )
-
-    st.markdown("### 💰 Finanças")
-
-    for chave, titulo, desc in BLOCOS:
-        if chave in [
-            "estrutura_custos",
-            "fontes_receita"
-        ]:
-
-            render_bloco(
-                chave,
-                titulo,
-                desc,
-                150
-            )
-
+# ============================================================
+# VISUALIZAÇÃO COMPLETA DO CANVAS
+# ============================================================
 st.divider()
+st.header("📊 Visualização Completa do Business Model Canvas")
+st.caption("Após construir cada etapa, visualize seu modelo de negócio completo.")
 
-# ========== VISUALIZAÇÃO COMPLETA ==========
-st.subheader("📊 Visualização Completa do Business Model Canvas")
-canvas_data = {}
-
-for chave, titulo, desc in BLOCOS:
-    itens = data["bmc"].get(chave,[])
+canvas_data = []
+for bloco in ETAPAS_BMC:
+    chave_bloco = bloco["chave"]
+    itens = data["bmc"].get(chave_bloco,[])
 
     if itens:
-        canvas_data[titulo] = "\n".join(
+        conteudo = "\n".join(
             [
                 f"• {item}"
                 for item in itens
+                if item.strip()
             ]
         )
     else:
-        canvas_data[titulo] = "_(vazio)_"
-
-df_canvas = pd.DataFrame(
-    list(canvas_data.items()),
-    columns=[
-        "Bloco",
-        "Conteúdo"
-    ]
-)
-
-st.dataframe(
-    df_canvas,
-    width="stretch",
-    height=400,
-    hide_index=True,
+        conteudo = "_(não preenchido)_"
+    canvas_data.append(
+        {
+            "Bloco": bloco["titulo"],
+            "Conteúdo": conteudo
+        }
+    )
+df_canvas = pd.DataFrame(canvas_data)
+st.dataframe(df_canvas,width="stretch",height=500,hide_index=True,
     column_config={
         "Bloco":
-        st.column_config.TextColumn(
-            "Bloco",
-            width="medium"
-        ),
+            st.column_config.TextColumn("Bloco",width="medium"),
         "Conteúdo":
-        st.column_config.TextColumn(
-            "Conteúdo",
-            width="large"
-        )
+            st.column_config.TextColumn("Conteúdo",width="large")
     }
 )
 
-# ========== EXPORTAÇÃO ==========
+# ============================================================
+# EXPORTAÇÃO
+# ============================================================
+st.divider()
 col_export1, col_export2 = st.columns(2)
-
 with col_export1:
-    if st.button(
-        "📋 Copiar Canvas (Texto)",
-        width="stretch"
-    ):
-        texto = (
-            "BUSINESS MODEL CANVAS\n"
-            + "=" * 50
-            + "\n\n"
-        )
+    texto_canvas = "BUSINESS MODEL CANVAS\n"
+    texto_canvas += "=" * 40
+    texto_canvas += "\n\n"
 
-        for chave, titulo, desc in BLOCOS:
-            texto += f"{titulo}:\n"
-            itens = data["bmc"].get(chave,[])
-            if itens:
-                for item in itens:
-                    texto += f"• {item}\n"
-            else:
-                texto += "(vazio)\n"
-            texto += "\n"
-        st.code(texto, language="markdown")
+    for bloco in ETAPAS_BMC:
+        titulo = bloco["titulo"]
+        itens = data["bmc"].get(bloco["chave"],[])
+        texto_canvas += f"{titulo}\n"
+        if itens:
+            for item in itens:
+                texto_canvas += f"• {item}\n"
+        else:
+            texto_canvas += "(não preenchido)\n"
+        texto_canvas += "\n"
+
+    if st.button("📋 Mostrar Canvas em Texto",width="stretch"):
+        st.code(texto_canvas,language="markdown")
 
 with col_export2:
-    if st.button(
-        "⬇️ Baixar Canvas (JSON)",
+    json_canvas = json.dumps(data["bmc"],indent=2,ensure_ascii=False)
+    st.download_button("⬇️ Baixar Canvas (.json)",data=json_canvas,
+        file_name="business_model_canvas.json",mime="application/json",
         width="stretch"
-    ):
-        json_str = json.dumps(
-            data["bmc"],
-            indent=2,
-            ensure_ascii=False
-        )
+    )
 
-        st.download_button(
-            "📥 Baixar JSON",
-            data=json_str,
-            file_name="business_model_canvas.json",
-            mime="application/json",
-            width="stretch"
-        )
-st.success("✅ Todos os blocos são salvos automaticamente.")
-
-# ========== ASSISTENTE IA ==========
+# ============================================================
+# ASSISTENTE IA GERAL DO CANVAS
+# ============================================================
 st.divider()
-st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA sobre o Business Model Canvas")
+empresa = data.get("empresa",{})
+empresa_nome = empresa.get("nome","").strip()
 
-bmc_atual = ""
+if not empresa_nome:
+    st.warning("⚠️ Cadastre os dados da empresa para utilizar o assistente.")
+else:
+    contexto_canvas = ""
 
-for chave, titulo, desc in BLOCOS:
-    itens = data["bmc"].get(chave,[])
-    bmc_atual += f"\n{titulo}:\n"
-
-    if itens:
+    for bloco in ETAPAS_BMC:
+        itens = data["bmc"].get(bloco["chave"],[])
+        contexto_canvas += (f"\n{bloco['titulo']}:\n")
         for item in itens:
-            bmc_atual += f"• {item}\n"
-
-    else:
-        bmc_atual += "(vazio)\n"
-
-
-contexto_bmc = f"""
-
-SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
-
-EMPRESA: {empresa_nome or "Não informada"}
-
-SETOR: {empresa_setor or "Não informado"}
-
-DESCRIÇÃO DO NEGÓCIO: {descricao_negocio or "Não informado"}
-
-DIFERENCIAIS: {diferenciais or "Não informado"}
-
-PÚBLICO-ALVO: {publico_alvo or "Não informado"}
-
-BUSINESS MODEL CANVAS ATUAL: {bmc_atual}
+            contexto_canvas += (
+                f"- {item}\n"
+            )
+    contexto = f"""
+EMPRESA: {empresa_nome}
+SETOR: {empresa.get("setor","Não informado")}
+BUSINESS MODEL CANVAS ATUAL: {contexto_canvas}
 """
-
-system_prompt_bmc = """
-
+    system_prompt = """
 Você é um consultor especialista em Business Model Canvas.
-
-Ajude o usuário a analisar, melhorar e completar seu modelo de negócio.
-
-Considere os 9 blocos:
-
-- Proposta de Valor
-- Segmentos de Clientes
-- Canais
-- Relacionamento com Clientes
-- Parcerias-Chave
-- Atividades-Chave
-- Recursos-Chave
-- Estrutura de Custos
-- Fontes de Receita
-
-
-Sempre utilize as informações atuais do Canvas.
-
-Responda em português do Brasil,
-de forma prática e objetiva.
+Ajude o empreendedor a analisar, melhorar e questionar seu modelo de negócio.
+Explique conceitos quando necessário.
+Sugira melhorias práticas.
+Responda sempre em português do Brasil,
+com linguagem simples e objetiva.
 """
+    render_chat(
+        messages_key="messages_bmc",
+        placeholder=
+        "Pergunte ao assistente sobre seu Canvas...",
+        system_prompt=system_prompt,
+        context=contexto
+    )
 
-render_chat(
-    messages_key="messages_bmc",
-    placeholder=
-    "Pergunte ao assistente sobre seu Business Model Canvas...",
-    system_prompt=system_prompt_bmc,
-    context=contexto_bmc
-)
-
-# ========== PRÓXIMA ETAPA ==========
-st.divider()
-col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
-
-with col_prox2:
-    if st.button(
-        "➡️ Vamos para a Próxima Etapa? > Análise PESTEL", width="stretch"):
+# ============================================================
+# PRÓXIMA ETAPA
+# ============================================================
+col1, col2, col3 = st.columns([1,2,1])
+with col2:
+    if st.button("➡️ Próxima Etapa: Análise PESTEL",width="stretch"):
         st.switch_page("pages/2_🌍_Análise_PESTEL.py")
