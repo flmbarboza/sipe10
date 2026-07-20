@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Orçamento Estratégico", page_icon="💰", layout="wide")
@@ -57,7 +58,7 @@ def consolidar_custos_departamentais():
                         "Departamento": depto,
                         "Recurso": acao.get("Ação", ""),
                         "Tipo": "Ação",
-                        "Valor Mensal": valor / 12,  # Distribuir ao longo do ano
+                        "Valor Mensal": valor / 12,
                         "Observações": acao.get("Origem", "")
                     })
     return custos
@@ -158,7 +159,6 @@ with st.expander("📊 Custos Consolidados", expanded=True):
             hide_index=True
         )
         
-        # Resumo por departamento
         st.markdown("#### Resumo por Departamento")
         resumo_depto = df_custos.groupby("Departamento")["Valor Mensal"].sum().reset_index()
         resumo_depto.columns = ["Departamento", "Custo Total"]
@@ -188,7 +188,6 @@ with st.expander("💼 Investimentos"):
 with st.expander("💵 Fluxo de Caixa Previsto"):
     st.markdown("### Fluxo de Caixa Mensal")
     
-    # Parâmetros
     col_mes1, col_mes2 = st.columns(2)
     with col_mes1:
         mes_inicio = st.text_input("Mês Início (MM/AAAA)", value=data["orcamento"].get("periodo_inicio", "01/2026"))
@@ -197,13 +196,11 @@ with st.expander("💵 Fluxo de Caixa Previsto"):
         mes_fim = st.text_input("Mês Fim (MM/AAAA)", value=data["orcamento"].get("periodo_fim", "12/2026"))
         data["orcamento"]["periodo_fim"] = mes_fim
     
-    # Calcular fluxo
     try:
-        meses_total = 12  # Simplificado
+        meses_total = 12
         receitas = [{"Mês": i+1, "Valor": float(r.get("Valor", 0))} 
                    for i, r in enumerate(data["orcamento"].get("receitas", [])) for _ in range(1)]
         
-        # Consolidar custos mensais
         custos_mensais = []
         if custos_consolidados:
             for custo in custos_consolidados:
@@ -230,7 +227,6 @@ with st.expander("💵 Fluxo de Caixa Previsto"):
                 hide_index=True
             )
             
-            # Gráfico do fluxo
             st.line_chart(df_fluxo.set_index("Mês")[["Receitas", "Custos", "Acumulado"]])
         else:
             st.info("Cadastre receitas e investimentos para visualizar o fluxo de caixa.")
@@ -255,7 +251,6 @@ with st.expander("📊 Orçamento por Departamento"):
             hide_index=True
         )
         
-        # Gráfico
         st.bar_chart(orcamento_depto.set_index("Departamento")["Custo Total"])
     else:
         st.info("Nenhum custo consolidado encontrado.")
@@ -264,7 +259,6 @@ with st.expander("📊 Orçamento por Departamento"):
 with st.expander("📈 Indicadores Financeiros"):
     st.markdown("### Indicadores Financeiros")
     
-    # Calcular indicadores
     total_receitas = sum([float(r.get("Valor", 0)) for r in data["orcamento"].get("receitas", [])])
     total_custos = sum([c.get("Valor Mensal", 0) for c in custos_consolidados])
     total_investimentos = sum([float(i.get("Valor", 0)) for i in data["orcamento"].get("investimentos", [])])
@@ -291,74 +285,52 @@ with st.expander("📈 Indicadores Financeiros"):
     with col_ind7:
         st.metric("Resultado", f"R$ {total_receitas - total_custos - total_investimentos:,.2f}")
 
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    ORÇAMENTO ESTRATÉGICO:
+    - Receita Total: R$ {total_receitas:,.2f}
+    - Custo Total: R$ {total_custos:,.2f}
+    - Investimento Total: R$ {total_investimentos:,.2f}
+    - Margem: {margem:.1%}
+    - ROI: {roi:.1%}
+    - Quantidade de Custos Consolidados: {len(custos_consolidados)}
+    - Departamentos com custos: {len(set([c.get('Departamento') for c in custos_consolidados])) if custos_consolidados else 0}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Orçamento e Finanças Estratégicas.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Entender a consolidação financeira dos planos
+    - Analisar indicadores financeiros (ROI, margem, payback)
+    - Identificar oportunidades de otimização de custos
+    - Planejar investimentos e fluxo de caixa
+    - Conectar o orçamento à estratégia geral
+    """
+
+    render_chat(
+        messages_key="messages_orcamento",
+        placeholder="Pergunte ao assistente sobre o orçamento estratégico...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Monitoramento", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Monitoramento", width="stretch"):
         st.switch_page("pages/9_🛃_Monitoramento.py")
-        
-# ========== ASSISTENTE IA ==========
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com o Orçamento")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_orcamento = []
-        st.rerun()
-
-if "messages_orcamento" not in st.session_state:
-    st.session_state.messages_orcamento = []
-
-for msg in st.session_state.messages_orcamento:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre o orçamento estratégico..."):
-    st.session_state.messages_orcamento.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            contexto = f"""
-            ORÇAMENTO ESTRATÉGICO:
-            - Receita Total: R$ {total_receitas:,.2f}
-            - Custo Total: R$ {total_custos:,.2f}
-            - Investimento Total: R$ {total_investimentos:,.2f}
-            - Margem: {margem:.1%}
-            - ROI: {roi:.1%}
-            - Quantidade de Custos Consolidados: {len(custos_consolidados)}
-            """
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Orçamento e Finanças Estratégicas.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_orcamento[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_orcamento.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
