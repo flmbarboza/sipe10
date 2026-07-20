@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
@@ -253,84 +254,66 @@ st.info(
     "**🎯 Análise SWOT** para consolidar tudo automaticamente."
 )
 
+# ========== ASSISTENTE IA PARA AJUDA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    pestel_atual = ""
+    for cat, itens in data["pestel"].items():
+        pestel_atual += f"\n{cat}:\n"
+        if itens:
+            for item in itens:
+                pestel_atual += f"  • {item.get('descricao', '')} ({item.get('tipo', '')}, impacto {item.get('impacto', '')})\n"
+        else:
+            pestel_atual += "  (vazio)\n"
+
+    contexto = f"""
+    SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+
+    EMPRESA:
+    {empresa_nome}
+
+    SETOR:
+    {empresa.get('setor', 'Não informado')}
+
+    LOCALIZAÇÃO:
+    {empresa.get('cidade_estado', 'Não informado')}
+
+    ANÁLISE PESTEL ATUAL:
+    {pestel_atual}
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Análise PESTEL e Estratégia.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Identificar fatores externos relevantes (Político, Econômico, Social, Tecnológico, Ecológico, Legal)
+    - Classificar cada fator como Oportunidade ou Ameaça
+    - Avaliar o impacto de cada fator
+    - Entender como os fatores se relacionam com o negócio
+    """
+
+    render_chat(
+        messages_key="messages_pestel",
+        placeholder="Pergunte ao assistente sobre fatores PESTEL...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > 5 Forças de Porter", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > 5 Forças de Porter", width="stretch"):
         st.switch_page("pages/3_⚔️_5_Forças_de_Porter.py")
-
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com a Análise PESTEL")
-# ========== CAMPOS DE ENVIO ==========
-col1, col2, col3 = st.columns([4, 1, 1])
-with col2:
-    enviar = st.button("👽 Enviar")
-with col3:
-    if st.button("🗑️ Limpar Chat"):
-        st.session_state.messages_pestel = []
-        st.rerun()
-
-if "messages_pestel" not in st.session_state:
-    st.session_state.messages_pestel = []
-
-for msg in st.session_state.messages_pestel:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-pergunta = st.text_area(
-    "",
-    placeholder="Pergunte ao assistente sobre a análise PESTEL...",
-    height=80,
-    key="pergunta_pestel",
-    label_visibility="collapsed"
-)
-
-# ========== PROCESSAR PERGUNTA ==========
-if enviar and pergunta.strip():
-    st.session_state.messages_pestel.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            pestel_atual = ""
-            for cat, itens in data["pestel"].items():
-                pestel_atual += f"\n{cat}:\n"
-                if itens:
-                    for item in itens:
-                        pestel_atual += f"  • {item.get('descricao', '')} ({item.get('tipo', '')}, impacto {item.get('impacto', '')})\n"
-                else:
-                    pestel_atual += "  (vazio)\n"
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Análise PESTEL e Estratégia.
-
-EMPRESA: {empresa_nome}
-SETOR: {empresa_setor}
-
-ANÁLISE PESTEL ATUAL:
-{pestel_atual}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_pestel[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_pestel.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
