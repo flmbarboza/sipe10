@@ -3,6 +3,7 @@ import streamlit as st
 import json
 import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
+from utils.chat import render_chat
 from openai import OpenAI
 
 st.set_page_config(page_title="Planejamento Estratégico", page_icon="🧭", layout="wide")
@@ -13,12 +14,6 @@ st.sidebar.title("🧭 Gestor Estratégico")
 sidebar_data_controls()
 
 st.title("🧭 Planejamento Estratégico")
-
-def system_prompt():
-    return (
-        "Você é um consultor sênior de planejamento estratégico empresarial. Responda em "
-        "português do Brasil, de forma clara, inspiradora e ao mesmo tempo objetiva."
-    )
 
 tab1, tab2, tab3 = st.tabs(["🌟 Missão, Visão e Valores", "🔀 SWOT Cruzada", "🎯 Objetivos, KPIs e Metas"])
 
@@ -122,21 +117,21 @@ with tab1:
 
     col_btn1, col_btn2, col_btn3 = st.columns(3)
     with col_btn1:
-        if st.button("🤖 Sugerir Missão", use_container_width=True):
+        if st.button("🤖 Sugerir Missão", width="stretch"):
             with st.spinner("Gerando missão..."):
                 resultado = gerar_missao_ia()
                 if resultado and "missao" in resultado:
                     data["mvv"]["missao"] = resultado["missao"]
                     st.rerun()
     with col_btn2:
-        if st.button("🤖 Sugerir Visão", use_container_width=True):
+        if st.button("🤖 Sugerir Visão", width="stretch"):
             with st.spinner("Gerando visão..."):
                 resultado = gerar_visao_ia()
                 if resultado and "visao" in resultado:
                     data["mvv"]["visao"] = resultado["visao"]
                     st.rerun()
     with col_btn3:
-        if st.button("🤖 Sugerir Valores", use_container_width=True):
+        if st.button("🤖 Sugerir Valores", width="stretch"):
             with st.spinner("Gerando valores..."):
                 resultado = gerar_valores_ia()
                 if resultado and "valores" in resultado:
@@ -285,7 +280,7 @@ with tab2:
     with col_gerar1:
         st.caption("A IA vai gerar estratégias para todos os quadrantes da SWOT Cruzada")
     with col_gerar2:
-        if st.button("🔄 Gerar SWOT Cruzada", use_container_width=True):
+        if st.button("🔄 Gerar SWOT Cruzada", width="stretch"):
             if not any([forcas, fraquezas, oportunidades, ameacas]):
                 st.warning("⚠️ Preencha a Análise SWOT primeiro!")
             else:
@@ -303,7 +298,7 @@ with tab2:
                         st.success("✅ SWOT Cruzada gerada!")
                         st.rerun()
     with col_gerar3:
-        if st.button("🗑️ Limpar SWOT Cruzada", use_container_width=True):
+        if st.button("🗑️ Limpar SWOT Cruzada", width="stretch"):
             for chave, _, _ in QUADRANTES_CRUZ:
                 data["swot_cruzada"][chave] = []
             st.rerun()
@@ -363,7 +358,7 @@ with tab2:
             
             col_btn1, col_btn2 = st.columns([3, 1])
             with col_btn1:
-                if st.button(f"🤖 Sugerir", key=f"sugerir_cruz_{chave}", use_container_width=True):
+                if st.button(f"🤖 Sugerir", key=f"sugerir_cruz_{chave}", width="stretch"):
                     if not any([forcas, fraquezas, oportunidades, ameacas]):
                         st.warning("⚠️ Preencha a Análise SWOT primeiro!")
                     else:
@@ -385,7 +380,7 @@ with tab2:
                                     st.info(f"ℹ️ Todas as estratégias sugeridas já existem em {titulo}.")
             
             with col_btn2:
-                if st.button(f"🗑️", key=f"limpar_cruz_{chave}", use_container_width=True):
+                if st.button(f"🗑️", key=f"limpar_cruz_{chave}", width="stretch"):
                     data["swot_cruzada"][chave] = []
                     st.rerun()
 
@@ -458,7 +453,7 @@ with tab3:
     with col_gerar_obj1:
         st.caption("A IA vai gerar objetivos estratégicos baseados na SWOT Cruzada")
     with col_gerar_obj2:
-        if st.button("🔄 Gerar Objetivos", use_container_width=True):
+        if st.button("🔄 Gerar Objetivos", width="stretch"):
             with st.spinner("Gerando objetivos estratégicos..."):
                 resultado = gerar_objetivos()
                 if resultado and "objetivos" in resultado:
@@ -482,7 +477,7 @@ with tab3:
                     else:
                         st.info("ℹ️ Todos os objetivos sugeridos já existem.")
     with col_gerar_obj3:
-        if st.button("🗑️ Limpar Objetivos", use_container_width=True):
+        if st.button("🗑️ Limpar Objetivos", width="stretch"):
             data["objetivos"] = []
             st.rerun()
 
@@ -542,83 +537,76 @@ with tab3:
             data["objetivos"] = novos_itens
             st.rerun()
 
+# ========== ASSISTENTE IA PARA AJUDA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    SIPE - SISTEMA INTEGRADO DE PLANEJAMENTO ESTRATÉGICO
+
+    EMPRESA:
+    {empresa_nome}
+
+    SETOR:
+    {empresa.get('setor', 'Não informado')}
+
+    LOCALIZAÇÃO:
+    {empresa.get('cidade_estado', 'Não informado')}
+
+    MISSÃO:
+    {data['mvv'].get('missao', 'Não definida')}
+
+    VISÃO:
+    {data['mvv'].get('visao', 'Não definida')}
+
+    VALORES:
+    {', '.join(data['mvv'].get('valores', [])) or 'Não definidos'}
+
+    SWOT CRUZADA:
+    """
+    for chave, titulo, _ in QUADRANTES_CRUZ:
+        itens = data["swot_cruzada"].get(chave, [])
+        contexto += f"\n{titulo}:\n"
+        if itens:
+            for item in itens:
+                contexto += f"  • {item.get('estrategia', '')}\n"
+        else:
+            contexto += "  (vazio)\n"
+    
+    contexto += "\nOBJETIVOS ESTRATÉGICOS:\n"
+    for obj in data.get("objetivos", []):
+        contexto += f"  • {obj.get('objetivo', '')} - {obj.get('perspectiva', '')} - {obj.get('kpi', '')} - {obj.get('meta', '')} - {obj.get('prazo', '')}\n"
+
+    system_prompt = """
+    Você é um assistente especialista em Planejamento Estratégico.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Definir Missão, Visão e Valores
+    - Construir a SWOT Cruzada
+    - Definir objetivos estratégicos SMART
+    - Conectar as diferentes partes do planejamento
+    """
+
+    render_chat(
+        messages_key="messages_planejamento",
+        placeholder="Pergunte ao assistente sobre o planejamento estratégico...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 # ========== BOTÃO PRÓXIMA ETAPA ==========
 col_prox1, col_prox2, col_prox3 = st.columns([1, 2, 1])
 with col_prox2:
-    if st.button("➡️ Próxima Etapa > Plano de Ação", width="stretch"):
+    if st.button("➡️ Vamos para a Próxima Etapa? > Plano de Ação", width="stretch"):
         st.switch_page("pages/6_✅_Plano_de_Ação_5W2H.py")
-        
-st.divider()
-st.subheader("💬 Assistente IA - Ajuda com o Planejamento Estratégico")
-
-col_chat1, col_chat2 = st.columns([5, 1])
-with col_chat2:
-    if st.button("🗑️ Limpar Chat", use_container_width=True):
-        st.session_state.messages_planejamento = []
-        st.rerun()
-
-if "messages_planejamento" not in st.session_state:
-    st.session_state.messages_planejamento = []
-
-for msg in st.session_state.messages_planejamento:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if pergunta := st.chat_input("Pergunte ao assistente sobre seu planejamento estratégico..."):
-    st.session_state.messages_planejamento.append({"role": "user", "content": pergunta})
-    
-    with st.chat_message("user"):
-        st.markdown(pergunta)
-    
-    with st.spinner("🤔 Pensando..."):
-        try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
-            
-            empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
-            empresa_setor = data.get("empresa", {}).get("setor", "não informado")
-            
-            contexto = f"""
-            EMPRESA: {empresa_nome}
-            SETOR: {empresa_setor}
-            
-            MISSÃO: {data['mvv'].get('missao', 'Não definida')}
-            VISÃO: {data['mvv'].get('visao', 'Não definida')}
-            VALORES: {', '.join(data['mvv'].get('valores', [])) or 'Não definidos'}
-            
-            SWOT CRUZADA:
-            """
-            for chave, titulo, _ in QUADRANTES_CRUZ:
-                itens = data["swot_cruzada"].get(chave, [])
-                contexto += f"\n{titulo}:\n"
-                if itens:
-                    for item in itens:
-                        contexto += f"  • {item.get('estrategia', '')}\n"
-                else:
-                    contexto += "  (vazio)\n"
-            
-            contexto += "\nOBJETIVOS:\n"
-            for obj in data.get("objetivos", []):
-                contexto += f"  • {obj.get('objetivo', '')} - {obj.get('perspectiva', '')} - {obj.get('kpi', '')} - {obj.get('meta', '')} - {obj.get('prazo', '')}\n"
-            
-            mensagens = [
-                {"role": "system", "content": f"""Você é um assistente especialista em Planejamento Estratégico.
-
-{contexto}
-
-Responda em português do Brasil, de forma prática e objetiva."""}
-            ] + st.session_state.messages_planejamento[:-1]
-            
-            response = client.chat.completions.create(
-                model="openai/gpt-oss-20b",
-                messages=mensagens,
-                temperature=0.7
-            )
-            
-            resposta = response.choices[0].message.content
-            st.session_state.messages_planejamento.append({"role": "assistant", "content": resposta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(resposta)
-                
-        except Exception as e:
-            st.error(f"❌ Erro ao processar sua pergunta: {str(e)}")
