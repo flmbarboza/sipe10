@@ -1,9 +1,10 @@
 import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
-from utils.ai_helper import sidebar_api_key_input, ai_assist_widget, ask_claude
+from utils.chat import render_chat
 import base64
 import pandas as pd
 from datetime import datetime
+from openai import OpenAI
 
 st.set_page_config(page_title="Relatório Completo", page_icon="📄", layout="wide")
 init_data()
@@ -226,7 +227,6 @@ def build_markdown():
         for depto, info in data["departamentos"].items():
             md += f"### {depto}\n\n"
             
-            # Objetivos
             if info.get("objetivos"):
                 md += "**Objetivos:**\n"
                 for obj in info["objetivos"]:
@@ -234,7 +234,6 @@ def build_markdown():
                         md += f"- {obj.get('Objetivo')} (Prioridade: {obj.get('Prioridade', '')}, Responsável: {obj.get('Responsável', '')})\n"
                 md += "\n"
             
-            # Ações
             if info.get("acoes"):
                 md += "**Ações:**\n"
                 for acao in info["acoes"]:
@@ -242,7 +241,6 @@ def build_markdown():
                         md += f"- {acao.get('Ação')} - Status: {acao.get('Situação', '')}\n"
                 md += "\n"
             
-            # Indicadores
             if info.get("indicadores"):
                 md += "**Indicadores:**\n"
                 for ind in info["indicadores"]:
@@ -250,7 +248,6 @@ def build_markdown():
                         md += f"- {ind.get('Indicador')} - Meta: {ind.get('Meta', '')}\n"
                 md += "\n"
             
-            # Recursos
             if info.get("recursos"):
                 md += "**Recursos:**\n"
                 for rec in info["recursos"]:
@@ -258,7 +255,6 @@ def build_markdown():
                         md += f"- {rec.get('Recurso')} - Valor: {rec.get('Valor estimado', '')}\n"
                 md += "\n"
             
-            # Riscos
             if info.get("riscos"):
                 md += "**Riscos:**\n"
                 for risco in info["riscos"]:
@@ -275,7 +271,6 @@ def build_markdown():
     if "orcamento" in data and isinstance(data["orcamento"], dict):
         orc = data["orcamento"]
         
-        # Receitas
         if orc.get("receitas"):
             md += "### Receitas Previstas\n"
             for r in orc["receitas"]:
@@ -283,7 +278,6 @@ def build_markdown():
                     md += f"- {r.get('Descrição')}: R$ {r.get('Valor', '0')} (Fonte: {r.get('Fonte', '')})\n"
             md += "\n"
         
-        # Investimentos
         if orc.get("investimentos"):
             md += "### Investimentos\n"
             for i in orc["investimentos"]:
@@ -291,15 +285,12 @@ def build_markdown():
                     md += f"- {i.get('Descrição')}: R$ {i.get('Valor', '0')}\n"
             md += "\n"
         
-        # Custos consolidados - calcular dos departamentos
         custos_departamentos = []
         if "departamentos" in data:
             for depto, info in data["departamentos"].items():
                 for rec in info.get("recursos", []):
                     if rec.get("Recurso") and rec.get("Valor estimado"):
-                        # CORREÇÃO: Limpar o valor para extrair apenas o número
                         valor_str = str(rec.get("Valor estimado", "0"))
-                        # Remover "R$", pontos, espaços e substituir vírgula por ponto
                         valor_limpo = valor_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
                         try:
                             valor = float(valor_limpo)
@@ -317,7 +308,6 @@ def build_markdown():
                 md += f"- {c['Departamento']} - {c['Recurso']}: R$ {c['Valor']:,.2f}\n"
             md += "\n"
         
-        # Indicadores Financeiros
         md += "### Indicadores Financeiros\n"
         total_receitas = 0
         for r in orc.get("receitas", []):
@@ -355,7 +345,6 @@ def build_markdown():
     if "monitoramento" in data and isinstance(data["monitoramento"], dict):
         mon = data["monitoramento"]
         
-        # Alertas
         if mon.get("alertas"):
             md += "### Alertas Ativos\n"
             for alerta in mon["alertas"]:
@@ -363,7 +352,6 @@ def build_markdown():
                     md += f"- **{alerta.get('Tipo', '')}**: {alerta.get('Descrição', '')} (Prioridade: {alerta.get('Prioridade', '')})\n"
             md += "\n"
         
-        # KPIs Estratégicos
         if "objetivos" in data:
             kpis = []
             for obj in data["objetivos"]:
@@ -379,7 +367,6 @@ def build_markdown():
                     md += f"- {kpi['KPI']} - Meta: {kpi['Meta']} - Prazo: {kpi['Prazo']}\n"
                 md += "\n"
         
-        # Status das Ações
         total_acoes = 0
         concluidas = 0
         andamento = 0
@@ -455,7 +442,6 @@ def build_markdown():
     # ========== 11. PAINEL DE CONTROLE ==========
     md += "## 11. Painel de Controle (Dashboard)\n\n"
     
-    # Estatísticas
     total_secoes = 11
     preenchidas = 0
     
@@ -487,7 +473,6 @@ def build_markdown():
     md += f"**Progresso do Planejamento:** {progresso:.0f}%\n\n"
     md += f"**Seções preenchidas:** {preenchidas} de {total_secoes}\n\n"
     
-    # Detalhamento das seções
     md += "### Status por Seção\n\n"
     secoes = [
         ("Dados da Empresa", data.get("empresa", {}).get("nome")),
@@ -507,7 +492,6 @@ def build_markdown():
         status_texto = "✅" if status else "❌"
         md += f"- {status_texto} {nome}\n"
     
-    # Resumo de ações
     total_acoes = 0
     concluidas = 0
     for acao in data.get("acao_5w2h", []):
@@ -541,10 +525,9 @@ with col1:
         data=markdown_texto.encode("utf-8"),
         file_name="relatorio_planejamento_estrategico.md",
         mime="text/markdown",
-        use_container_width=True,
+        width="stretch",
     )
 with col2:
-    # Botão para imprimir
     html_content = f"""
     <html>
     <head>
@@ -582,14 +565,14 @@ with col2:
         data=html_content.encode("utf-8"),
         file_name="relatorio_planejamento_estrategico.html",
         mime="text/html",
-        use_container_width=True,
+        width="stretch",
         help="Baixe o HTML e abra no navegador para imprimir como PDF"
     )
     
     st.caption("💡 Baixe o HTML, abra no navegador e use Ctrl+P (ou Cmd+P) para salvar como PDF")
 
 with col3:
-    if st.button("📋 Copiar Relatório", use_container_width=True):
+    if st.button("📋 Copiar Relatório", width="stretch"):
         st.code(markdown_texto, language="markdown")
 
 st.divider()
@@ -602,13 +585,11 @@ st.caption(
 if st.button("🔍 Executar Revisão Completa do Planejamento", width="stretch"):
     with st.spinner("🔄 Analisando todo o planejamento estratégico..."):
         try:
-            from openai import OpenAI
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
             
             empresa_nome = data.get("empresa", {}).get("nome", "a empresa")
             empresa_setor = data.get("empresa", {}).get("setor", "não informado")
             
-            # Coletar resumo das seções
             resumo = f"""
             EMPRESA: {empresa_nome}
             SETOR: {empresa_setor}
@@ -655,30 +636,10 @@ if st.button("🔍 Executar Revisão Completa do Planejamento", width="stretch")
             Sua análise deve abordar OBRIGATORIAMENTE:
             
             1. INCONSISTÊNCIAS - identifique contradições entre as diferentes seções do planejamento
-               - Exemplo: objetivo estratégico que não está alinhado com a missão
-               - Exemplo: ação planejada que não tem relação com os objetivos
-               - Exemplo: oportunidade identificada na SWOT que não é aproveitada nos objetivos
-            
             2. LACUNAS - identifique o que está faltando ou incompleto
-               - Seções vazias ou muito superficiais
-               - Objetivos sem KPIs ou prazos definidos
-               - Ações sem responsáveis ou prazos
-               - Departamentos sem planos de ação
-            
             3. INCOERÊNCIAS - identifique elementos que não fazem sentido juntos
-               - Exemplo: estratégias de crescimento com orçamento restritivo
-               - Exemplo: alta competitividade (Porter) sem ações defensivas
-               - Exemplo: oportunidades externas que não são aproveitadas
-            
             4. PROBLEMAS DE GESTÃO - identifique problemas de governança e execução
-               - Falta de responsáveis claros
-               - Prazos irrealistas
-               - Indicadores sem metas definidas
-               - Riscos sem planos de mitigação
-            
             5. RECOMENDAÇÕES PRIORITÁRIAS - liste as ações mais urgentes para corrigir os problemas identificados
-               - Máximo de 5 recomendações, por ordem de prioridade
-               - Cada recomendação deve ser acionável e específica
             
             Seja rigoroso, crítico e objetivo. Não seja complacente.
             Aponte problemas reais que comprometem a execução do planejamento.
@@ -709,7 +670,61 @@ if "revisao_ia" in st.session_state:
     if st.button("🗑️ Limpar Revisão", width="stretch"):
         del st.session_state["revisao_ia"]
         st.rerun()
-        
+
+# ========== ASSISTENTE IA ==========
+st.divider()
+st.subheader("💬 Tem dúvidas? Consulte nosso Assistente IA")
+
+empresa = data.get("empresa", {})
+empresa_nome = empresa.get("nome", "").strip()
+
+if not empresa_nome:
+    st.warning(
+        "⚠️ Cadastre primeiro os dados da empresa para utilizar o assistente de IA.",
+        icon="⚠️"
+    )
+else:
+    contexto = f"""
+    RELATÓRIO COMPLETO DO PLANEJAMENTO ESTRATÉGICO
+
+    EMPRESA: {empresa_nome}
+    SETOR: {empresa.get('setor', 'Não informado')}
+    LOCALIZAÇÃO: {empresa.get('cidade_estado', 'Não informado')}
+
+    O relatório consolida todas as seções do planejamento:
+    1. Dados da Empresa
+    2. Business Model Canvas
+    3. Análise PESTEL
+    4. 5 Forças de Porter
+    5. Análise SWOT
+    6. Planejamento Estratégico (MVV, SWOT Cruzada, Objetivos)
+    7. Plano de Ação 5W2H
+    8. Planos por Função (Departamentais)
+    9. Orçamento
+    10. Monitoramento
+    11. Revisão Estratégica
+    12. Painel de Controle
+    """
+
+    system_prompt = """
+    Você é um assistente especialista em Planejamento Estratégico.
+
+    Responda em português do Brasil, de forma prática e objetiva.
+
+    Ajude o usuário a:
+    - Entender o conteúdo do relatório
+    - Identificar pontos fortes e fracos do planejamento
+    - Sugerir melhorias e ajustes
+    - Preparar apresentações e comunicação
+    """
+
+    render_chat(
+        messages_key="messages_relatorio",
+        placeholder="Pergunte ao assistente sobre o relatório...",
+        system_prompt=system_prompt,
+        context=contexto,
+    )
+
 st.info(
     "💡 Este relatório consolida todas as 11 seções do planejamento estratégico na ordem correta: "
     "Início, BMC, PESTEL, Porter, SWOT, Planejamento Estratégico, Plano de Ação, Planos por Função, "
