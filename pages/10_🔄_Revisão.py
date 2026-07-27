@@ -6,6 +6,11 @@ from datetime import datetime
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
+from utils.analytics import UXMonitor
+
+monitor = UXMonitor()
+page_name = "Revisão do PE"
+monitor.track_event('page_view', page_name)
 
 st.set_page_config(page_title="Revisão Estratégica", page_icon="🔄", layout="wide")
 init_data()
