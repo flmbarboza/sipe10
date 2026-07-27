@@ -8,7 +8,7 @@ st.set_page_config(page_title="UX Dashboard", layout="wide")
 # Controle de acesso simples
 if 'dev_password' not in st.session_state:
     password = st.text_input("Senha do desenvolvedor:", type="password")
-    if password == "sua_senha_aqui":  # Use secrets.toml para isso
+    if password == "admin123":  # Use secrets.toml para isso
         st.session_state.dev_password = True
     else:
         st.warning("Acesso negado.")
