@@ -5,6 +5,11 @@ import base64
 import pandas as pd
 from datetime import datetime
 from openai import OpenAI
+from utils.analytics import UXMonitor
+
+monitor = UXMonitor()
+page_name = "Relatório"
+monitor.track_event('page_view', page_name)
 
 st.set_page_config(page_title="Relatório Completo", page_icon="📄", layout="wide")
 init_data()
