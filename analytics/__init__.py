@@ -14,7 +14,13 @@ from .session_manager import (
     update_activity,
     check_timeout
 )
-
+from .business import (
+    strategy_started,
+    strategy_completed,
+    module_started,
+    module_completed,
+    pdf_generated
+)
 migrate()
 
 sync_engine.start()
