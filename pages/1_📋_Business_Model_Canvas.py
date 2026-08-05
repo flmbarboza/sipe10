@@ -274,6 +274,7 @@ begin_observation(
     key=chave,
     items=st.session_state[session_key]
 )
+
 for item in st.session_state[session_key]:
     col1, col2 = st.columns([18,1], vertical_alignment="center")
     with col1:
@@ -313,11 +314,9 @@ if st.button(
     st.rerun()
 
 # Atualiza o formato antigo utilizado pelo restante do sistema
-data["bmc"][chave] = [
-    item["texto"]
-    for item in st.session_state[session_key]
-    if item["texto"].strip()
-]
+data["bmc"][chave] = deepcopy(
+    st.session_state[session_key]
+)
 
 end_observation(
     key=chave,
