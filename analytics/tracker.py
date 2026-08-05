@@ -99,3 +99,45 @@ def end_observation(
         )
 
     _state_cache[key] = deepcopy(items)
+
+# ==========================================================
+# Controle de páginas e módulos
+# ==========================================================
+
+from .session import start_module
+
+
+def init_page():
+    """
+    Mantido por compatibilidade.
+    Futuramente poderá registrar page_view automaticamente.
+    """
+    return
+
+
+def module_started(module):
+    """
+    Registra o início de um módulo.
+    """
+
+    start_module(module)
+
+    track(
+        event="module_started",
+        module=module
+    )
+
+
+def module_completed(
+    module,
+    metadata=None
+):
+    """
+    Registra a conclusão de um módulo.
+    """
+
+    track(
+        event="module_completed",
+        module=module,
+        metadata=metadata or {}
+    )
