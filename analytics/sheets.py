@@ -38,10 +38,17 @@ def save_many(events):
             [
                 e.timestamp,
                 e.event_id,
-                e.operation_id,
                 e.session_id,
-                e.event,
+                e.operation_id,
+                e.page,
                 e.module,
+                e.event,
+                e.action,
+                e.duration_ms,
+                e.company_name,
+                e.company_sector,
+                e.completion_pct,
+                e.ai_used,
                 str(e.metadata)
             ]
         )
