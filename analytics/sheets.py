@@ -26,15 +26,9 @@ def save_many(events):
 
     client = get_client()
 
-    print("CLIENTE GOOGLE OK")
-
     spreadsheet = client.open("SIPE10 Analytics")
 
-    print("PLANILHA ABERTA")
-
     sheet = spreadsheet.worksheet("events")
-
-    print("ABA ENCONTRADA")
 
     sheet.append_row(
         [
@@ -43,5 +37,3 @@ def save_many(events):
             "funcionando"
         ]
     )
-
-    print("LINHA INSERIDA")
