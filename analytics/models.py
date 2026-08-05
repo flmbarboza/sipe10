@@ -1,30 +1,57 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from uuid import uuid4
+from datetime import datetime
+import uuid
 
 
-@dataclass(slots=True)
+class Module:
+    HOME = "home"
+    CANVAS = "canvas"
+    PESTEL = "pestel"
+    PORTER = "porter"
+    SWOT = "swot"
+    PLANEJAMENTO = "planejamento"
+    FINANCEIRO = "financeiro"
+    ACAO = "5w2h"
+    RELATORIO = "relatorio"
+
+
+@dataclass
 class Event:
 
-    event_id: str = field(
-        default_factory=lambda: str(uuid4())
-    )
+    timestamp: str
 
-    operation_id: str = ""
+    event_id: str
 
-    session_id: str = ""
+    session_id: str
 
-    timestamp: str = field(
-        default_factory=lambda:
-        datetime.now(timezone.utc).isoformat()
-    )
+    operation_id: str
 
-    event: str = ""
+    page: str
 
-    module: str = ""
+    module: str
 
-    duration: float | None = None
+    event: str
 
-    metadata: dict = field(
-        default_factory=dict
-    )
+    action: str = ""
+
+    duration_ms: int = 0
+
+    company_name: str = ""
+
+    company_sector: str = ""
+
+    completion_pct: float = 0.0
+
+    ai_used: bool = False
+
+    metadata: dict = field(default_factory=dict)
+
+
+def now():
+
+    return datetime.utcnow().isoformat()
+
+
+def new_uuid():
+
+    return uuid.uuid4().hex
