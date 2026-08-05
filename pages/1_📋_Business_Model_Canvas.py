@@ -408,13 +408,32 @@ if gerar_sugestao:
                     
                     if sugestoes:
                         itens_existentes = data["bmc"].get(chave, [])
-                        itens_existentes = [item for item in itens_existentes if item and item.strip()]
+                        itens_existentes_texto = [
+                            item.get("texto", "")
+                            if isinstance(item, dict)
+                            else str(item)
+                            for item in itens_existentes
+                        ]
                         
-                        existentes_set = set([item.lower().strip() for item in itens_existentes])
+                        itens_existentes_texto = [
+                            item
+                            for item in itens_existentes_texto
+                            if item.strip()
+                        ]
+                        
+                        existentes_set = set(
+                            item.lower().strip()
+                            for item in itens_existentes_texto
+                        )
                         adicionados = 0
                         for sugestao in sugestoes:
                             if sugestao.lower().strip() not in existentes_set:
-                                itens_existentes.append(sugestao)
+                                itens_existentes.append(
+                                    {
+                                        "id": uuid.uuid4().hex,
+                                        "texto": sugestao
+                                    }
+                                )
                                 existentes_set.add(sugestao.lower().strip())
                                 adicionados += 1
                         
@@ -429,9 +448,9 @@ if gerar_sugestao:
                                 st.session_state[session_key] = [
                                     {
                                         "id": uuid.uuid4().hex,
-                                        "texto": texto
+                                        "texto": item["texto"] if isinstance(item, dict) else item
                                     }
-                                    for texto in itens_existentes
+                                    for item in itens_existentes
                                 ]
                                 st.success(
                                     f"✅ {adicionados} sugestões adicionadas! Revise e edite abaixo."
