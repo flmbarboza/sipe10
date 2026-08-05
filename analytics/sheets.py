@@ -19,7 +19,7 @@ def get_client():
 
 
 
-def save_events(events):
+def save_many(events):
 
     client = get_client()
 
@@ -29,9 +29,7 @@ def save_events(events):
         "events"
     )
 
-
-    rows=[]
-
+    rows = []
 
     for e in events:
 
@@ -39,13 +37,13 @@ def save_events(events):
             [
                 e.timestamp,
                 e.event_id,
+                e.operation_id,
                 e.session_id,
                 e.event,
                 e.module,
                 str(e.metadata)
             ]
         )
-
 
     sheet.append_rows(
         rows,
