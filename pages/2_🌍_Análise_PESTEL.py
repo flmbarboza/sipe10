@@ -5,6 +5,7 @@ import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
+from analytics import module_started
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
 init_data()
