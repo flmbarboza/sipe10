@@ -71,12 +71,22 @@ class Storage:
         self.conn.executemany(
             """
             INSERT INTO events
-            VALUES (?,?,?,?,?,?,?,?,?)
+            (
+                event_id,
+                operation_id,
+                session_id,
+                timestamp,
+                event,
+                module,
+                duration,
+                metadata,
+                status,
+                app_version
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?)
             """,
             rows,
         )
-
-        self.conn.commit()
 
     def get_pending(self, limit=100):
 
