@@ -16,6 +16,8 @@ from .sync import sync_engine
 
 from .migrations import migrate
 
+from .page_tracker import init_page
+
 migrate()
 
 sync_engine.start()
