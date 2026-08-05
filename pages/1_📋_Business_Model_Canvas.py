@@ -30,9 +30,14 @@ st.caption(
     "Construa seu modelo de negócio passo a passo. "
     "O SIPE irá guiá-lo desde a identificação dos clientes até a estrutura financeira."
 )
-module_started(
-    Module.CANVAS
-)
+
+if "canvas_started" not in st.session_state:
+
+    module_started(
+        Module.CANVAS
+    )
+
+    st.session_state.canvas_started = True
 # ============================================================
 # INICIALIZAÇÃO DOS DADOS
 # ============================================================
@@ -317,9 +322,18 @@ track(
     EventType.CANVAS_SAVED,
     module=Module.CANVAS,
     metadata={
-        "filled_blocks": len(canvas_data)
+        "current_block": chave,
+        "current_step": etapa_atual + 1,
+        "total_steps": len(ETAPAS_BMC),
+        "items_in_block": len(
+            [
+                x for x in st.session_state[session_key]
+                if x["texto"].strip()
+            ]
+        )
     }
 )
+
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
