@@ -1,0 +1,5 @@
+BUFFER_SIZE = 20
+
+GOOGLE_SHEET = "SIPE10 Analytics"
+
+WORKSHEET = "events"
