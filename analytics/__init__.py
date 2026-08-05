@@ -12,6 +12,10 @@ from .buffer import buffer
 
 from .autoflush import autoflush
 
+from .sync import sync_engine
+
+sync_engine.start()
+
 event_bus.subscribe(console_handler)
 event_bus.subscribe(buffer.add)
 
