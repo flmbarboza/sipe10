@@ -51,7 +51,6 @@ def track(
         event=event,
         action=action,
         duration_ms=duration,
-        elapsed_module_ms=module_duration(),
         company_name=empresa.get("nome", ""),
         company_sector=empresa.get("setor", ""),
         metadata=metadata
