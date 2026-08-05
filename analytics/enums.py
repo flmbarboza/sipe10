@@ -90,6 +90,8 @@ class Module(str, Enum):
 
     PLANO_ACAO = "plano_acao"
 
+    PLANO_FUNCAO = "plano_funcao"
+
     MONITORAMENTO = "monitoramento"
 
     REVIEW = "revisao"
