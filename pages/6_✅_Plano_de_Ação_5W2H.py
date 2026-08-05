@@ -5,17 +5,20 @@ import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
-from utils.analytics import UXMonitor
-
-monitor = UXMonitor()
-page_name = "Plano de Ação 5W2H"
-monitor.track_event('page_view', page_name)
+from analytics import Module
+from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 st.set_page_config(page_title="Plano de Ação 5W2H", page_icon="✅", layout="wide")
 init_data()
 data = get_data()
 
 st.sidebar.title("🧭 Gestor Estratégico")
+module_started(
+    Module.PLANO_ACAO
+)
 sidebar_data_controls()
 
 st.title("✅ Plano de Ação (5W2H)")
