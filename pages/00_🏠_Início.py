@@ -11,6 +11,14 @@ from analytics import (
     check_timeout
 )
 
+track(
+    EventType.ERROR,
+    module=Module.HOME,
+    metadata={
+        "teste": "analytics funcionando"
+    }
+)
+
 init_session()
 
 update_activity()
