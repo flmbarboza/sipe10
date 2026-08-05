@@ -340,10 +340,12 @@ if gerar_sugestao:
     track(
         event="ai_request",
         module=Module.CANVAS,
+        ai_used=True,
         metadata={
-            "block": chave,
+            "block": chave
         }
     )
+    
     with st.spinner("🤔 Analisando o modelo de negócio..."):
         try:
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
@@ -788,38 +790,6 @@ with col_export3:
         width="stretch",
         help="Baixe o HTML para imprimir ou visualizar o Canvas no formato tradicional"
     )
-
-module_completed(
-    Module.CANVAS,
-    metadata={
-
-        "blocks_completed": len(
-            [
-                bloco
-                for bloco in ETAPAS_BMC
-                if data["bmc"].get(bloco["chave"])
-            ]
-        ),
-
-        "total_blocks": len(ETAPAS_BMC),
-
-        "completion_rate":
-            round(
-                len(
-                    [
-                        bloco
-                        for bloco in ETAPAS_BMC
-                        if data["bmc"].get(bloco["chave"])
-                    ]
-                )
-                /
-                len(ETAPAS_BMC)
-                *
-                100,
-                2
-            )
-    }
-)
 
 # ============================================================
 # ASSISTENTE IA GERAL DO CANVAS
