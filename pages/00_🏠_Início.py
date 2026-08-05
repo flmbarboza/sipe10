@@ -2,13 +2,14 @@ import streamlit as st
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input
 from utils.chat import render_chat
-from utils.analytics import UXMonitor
+from analytics import track
+from analytics import EventType
+from analytics import Module
 
-monitor = UXMonitor()
-
-# No início da página
-page_name = "Início"
-monitor.track_event('page_view', page_name)
+track(
+    EventType.PAGE_OPEN,
+    module=Module.HOME
+)
 
 st.set_page_config(
     page_title="Gestor Estratégico",
