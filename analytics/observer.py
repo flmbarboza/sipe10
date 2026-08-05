@@ -5,21 +5,22 @@ from typing import Any
 
 @dataclass
 class Change:
-
     event: str
-
     item_id: str
-
     before: dict | None = None
-
     after: dict | None = None
-
     changed_fields: list[str] = field(default_factory=list)
 
 
 class Observer:
+    """
+    Compara duas listas de objetos e identifica:
+        - item_added
+        - item_removed
+        - item_updated
+    """
 
-    def diff(
+    def observe(
         self,
         before: list[dict],
         after: list[dict],
@@ -43,11 +44,11 @@ class Observer:
             for item in after
         }
 
-        changes = []
+        changes: list[Change] = []
 
-        #
-        # adicionados
-        #
+        # --------------------------
+        # Novos itens
+        # --------------------------
 
         for item_id, item in after_map.items():
 
@@ -55,15 +56,15 @@ class Observer:
 
                 changes.append(
                     Change(
-                        event="field_added",
+                        event="item_added",
                         item_id=item_id,
                         after=item
                     )
                 )
 
-        #
-        # removidos
-        #
+        # --------------------------
+        # Itens removidos
+        # --------------------------
 
         for item_id, item in before_map.items():
 
@@ -71,15 +72,15 @@ class Observer:
 
                 changes.append(
                     Change(
-                        event="field_removed",
+                        event="item_removed",
                         item_id=item_id,
                         before=item
                     )
                 )
 
-        #
-        # alterados
-        #
+        # --------------------------
+        # Itens alterados
+        # --------------------------
 
         for item_id in before_map.keys():
 
@@ -89,25 +90,22 @@ class Observer:
             before_item = before_map[item_id]
             after_item = after_map[item_id]
 
-            modified = []
+            modified_fields = []
 
             for field in watched_fields:
 
-                before_value = before_item.get(field)
-                after_value = after_item.get(field)
+                if before_item.get(field) != after_item.get(field):
+                    modified_fields.append(field)
 
-                if before_value != after_value:
-                    modified.append(field)
-
-            if modified:
+            if modified_fields:
 
                 changes.append(
                     Change(
-                        event="field_changed",
+                        event="item_updated",
                         item_id=item_id,
                         before=before_item,
                         after=after_item,
-                        changed_fields=modified
+                        changed_fields=modified_fields
                     )
                 )
 
