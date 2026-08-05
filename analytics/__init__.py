@@ -14,6 +14,10 @@ from .autoflush import autoflush
 
 from .sync import sync_engine
 
+from .migrations import migrate
+
+migrate()
+
 sync_engine.start()
 
 event_bus.subscribe(console_handler)
