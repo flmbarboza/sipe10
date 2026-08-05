@@ -6,7 +6,8 @@ from .enums import Module
 from .bus import event_bus
 
 from .console import console_handler
-from .storage import storage
+
+from .buffer import buffer
 
 event_bus.subscribe(console_handler)
-event_bus.subscribe(storage.save)
+event_bus.subscribe(buffer.add)
