@@ -5,17 +5,20 @@ import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
-from utils.analytics import UXMonitor
-
-monitor = UXMonitor()
-page_name = "Análise SWOT"
-monitor.track_event('page_view', page_name)
+from analytics import Module
+from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 st.set_page_config(page_title="Análise SWOT", page_icon="🎯", layout="wide")
 init_data()
 data = get_data()
 
 st.sidebar.title("🧭 Gestor Estratégico")
+module_started(
+    Module.SWOT
+)
 sidebar_data_controls()
 
 st.title("🎯 Análise SWOT")
