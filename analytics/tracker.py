@@ -25,7 +25,9 @@ def track(
     event,
     module,
     action="",
-    metadata=None
+    metadata=None,
+    completion_pct=0.0,
+    ai_used=False
 ):
     global _last_event
     agora = time.time()
@@ -53,6 +55,8 @@ def track(
         duration_ms=duration,
         company_name=empresa.get("nome", ""),
         company_sector=empresa.get("setor", ""),
+        completion_pct=completion_pct,
+        ai_used=ai_used,
         metadata=metadata
     )
 
