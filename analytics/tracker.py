@@ -129,15 +129,27 @@ def module_started(module):
         module=module
     )
 
-def module_completed(
-    module,
-    metadata=None
-):
-    """
-    Registra a conclusão de um módulo.
-    """
+def module_completed(module, metadata=None):
+
+    if metadata is None:
+        metadata = {}
+
+    data = get_data()
+
+    completion = calculate_completion(
+        module,
+        data
+    )
+
+    metadata.update(
+        {
+            "completion_rate": completion
+        }
+    )
+
     track(
         event="module_completed",
         module=module,
-        metadata=metadata or {}
+        completion_pct=completion,
+        metadata=metadata
     )
