@@ -13,6 +13,7 @@ class Buffer:
 
         self.max_size = 50
 
+
     def add(self, event):
 
         with self.lock:
@@ -23,14 +24,16 @@ class Buffer:
 
                 self.flush()
 
+
     def flush(self):
 
         if not self.events:
             return
 
-        storage.save_many(self.events)
+        sheets.save_many(self.events)
 
         self.events.clear()
+
 
 
 buffer = Buffer()
