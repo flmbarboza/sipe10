@@ -15,7 +15,7 @@ from analytics import track
 from analytics import EventType
 
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
-
+init_page(Module.CANVAS)
 init_data()
 data = get_data()
 
