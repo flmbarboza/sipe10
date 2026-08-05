@@ -22,31 +22,26 @@ def get_client():
 
 def save_many(events):
 
+    print("INICIANDO GOOGLE SHEETS")
+
     client = get_client()
 
-    sheet = client.open(
-        "SIPE10 Analytics"
-    ).worksheet(
-        "events"
+    print("CLIENTE GOOGLE OK")
+
+    spreadsheet = client.open("SIPE10 Analytics")
+
+    print("PLANILHA ABERTA")
+
+    sheet = spreadsheet.worksheet("events")
+
+    print("ABA ENCONTRADA")
+
+    sheet.append_row(
+        [
+            "teste",
+            "analytics",
+            "funcionando"
+        ]
     )
 
-    rows = []
-
-    for e in events:
-
-        rows.append(
-            [
-                e.timestamp,
-                e.event_id,
-                e.operation_id,
-                e.session_id,
-                e.event,
-                e.module,
-                str(e.metadata)
-            ]
-        )
-
-    sheet.append_rows(
-        rows,
-        value_input_option="USER_ENTERED"
-    )
+    print("LINHA INSERIDA")
