@@ -1,3 +1,5 @@
+from threading import Lock
+
 from .storage import storage
 
 
@@ -7,21 +9,26 @@ class Buffer:
 
         self.events = []
 
+        self.lock = Lock()
+
         self.max_size = 50
 
     def add(self, event):
 
-        self.events.append(event)
+        with self.lock:
 
-        if len(self.events) >= self.max_size:
+            self.events.append(event)
 
-            self.flush()
+            if len(self.events) >= self.max_size:
+
+                self.flush()
 
     def flush(self):
 
-        for e in self.events:
+        if not self.events:
+            return
 
-            storage.save(e)
+        storage.save_many(self.events)
 
         self.events.clear()
 
