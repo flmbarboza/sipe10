@@ -348,6 +348,14 @@ with col_ia2:
     gerar_sugestao = st.button("🤖 Gerar sugestões", width="stretch", key=f"ia_{chave}")
 
 if gerar_sugestao:
+    track(
+        EventType.AI_REQUEST,
+        module=Module.CANVAS,
+        metadata={
+            "block": chave,
+            "step": etapa_atual + 1
+        }
+    )
     with st.spinner("🤔 Analisando o modelo de negócio..."):
         try:
             client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"], base_url="https://openrouter.ai/api/v1")
