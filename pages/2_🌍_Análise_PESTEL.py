@@ -7,6 +7,9 @@ from utils.chat import render_chat
 from openai import OpenAI
 from analytics import Module
 from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
 init_data()
