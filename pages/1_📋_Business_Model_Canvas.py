@@ -7,11 +7,12 @@ import streamlit.components.v1 as components
 from openai import OpenAI
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
-from utils.analytics import UXMonitor
-
-monitor = UXMonitor()
-page_name = "Business Model Canvas"
-monitor.track_event('page_view', page_name)
+from analytics import init_page
+from analytics import Module
+from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
 
