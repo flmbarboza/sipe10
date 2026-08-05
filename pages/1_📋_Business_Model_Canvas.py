@@ -30,7 +30,9 @@ st.caption(
     "Construa seu modelo de negócio passo a passo. "
     "O SIPE irá guiá-lo desde a identificação dos clientes até a estrutura financeira."
 )
-
+module_started(
+    Module.CANVAS
+)
 # ============================================================
 # INICIALIZAÇÃO DOS DADOS
 # ============================================================
