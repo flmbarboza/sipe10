@@ -779,6 +779,12 @@ with col_export3:
         help="Baixe o HTML para imprimir ou visualizar o Canvas no formato tradicional"
     )
 
+module_completed(
+    Module.CANVAS,
+    metadata={
+        "blocks_completed": 9
+    }
+)
 # ============================================================
 # ASSISTENTE IA GERAL DO CANVAS
 # ============================================================
