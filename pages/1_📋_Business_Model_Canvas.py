@@ -15,6 +15,16 @@ from analytics import module_completed
 from analytics import track, begin_observation, end_observation
 from analytics.item_factory import new_user_item
 
+def get_item_text(item):
+    """
+    Retorna o texto de um item do Canvas.
+    Compatível com o novo formato (dict) e antigo (string).
+    """
+    if isinstance(item, dict):
+        return item.get("texto", "")
+    
+    return str(item)
+    
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
 init_page(Module.CANVAS)
 init_data()
@@ -788,11 +798,14 @@ with col_export3:
     itens = data["bmc"].get("segmentos_clientes", [])
     if itens:
         for item in itens:
-            if item.strip():
-                html_canvas += f"<li>{item}</li>"
+    
+            texto = get_item_text(item)
+    
+            if texto.strip():
+                html_canvas += f"<li>{texto}</li>"
+    
     else:
         html_canvas += "<li><em>não preenchido</em></li>"
-    html_canvas += "</ul></div>"
     
     html_canvas += f"""
                     <div class="bloco financas"><h3>💸 Estrutura de Custos</h3><ul>
