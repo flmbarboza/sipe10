@@ -11,7 +11,7 @@ from analytics import init_page
 from analytics import Module
 from analytics import module_started
 from analytics import module_completed
-from analytics import track
+from analytics import track, begin_observation, end_observation
 from analytics.item_factory import new_user_item
 
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
@@ -270,6 +270,10 @@ st.divider()
 # ============================================================
 st.subheader("✍️ Construa sua resposta")
 indice_remover = None
+begin_observation(
+    key=chave,
+    items=st.session_state[session_key]
+)
 for item in st.session_state[session_key]:
     col1, col2 = st.columns([18,1], vertical_alignment="center")
     with col1:
@@ -315,6 +319,11 @@ data["bmc"][chave] = [
     if item["texto"].strip()
 ]
 
+end_observation(
+    key=chave,
+    items=st.session_state[session_key],
+    module=Module.CANVAS
+)
 track(
     event="canvas_saved",
     module=Module.CANVAS,
