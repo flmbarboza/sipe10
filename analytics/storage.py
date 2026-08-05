@@ -4,8 +4,7 @@ import json
 
 from .models import Event
 
-DB_PATH = Path("analytics.db")
-
+DB_PATH = Path("analytics_test.db")
 
 class Storage:
 
@@ -53,7 +52,6 @@ class Storage:
         rows = []
 
         for e in events:
-
             rows.append(
                 (
                     e.event_id,
@@ -65,9 +63,12 @@ class Storage:
                     e.duration,
                     json.dumps(e.metadata, ensure_ascii=False),
                     "PENDING",
+                    e.metadata.get(
+                        "app_version",
+                        ""
+                    ),
                 )
             )
-
         self.conn.executemany(
             """
             INSERT INTO events
