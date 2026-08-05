@@ -26,12 +26,20 @@ class Buffer:
 
 
     def flush(self):
-
+    
         if not self.events:
             return
-
+    
+    
+        print(
+            "FLUSH ANALYTICS:",
+            len(self.events)
+        )
+    
+    
         sheets.save_many(self.events)
-
+    
+    
         self.events.clear()
 
 
