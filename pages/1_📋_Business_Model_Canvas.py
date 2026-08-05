@@ -475,6 +475,7 @@ with col_avancar:
 # VISUALIZAÇÃO COMPLETA DO CANVAS - FORMATO TRADICIONAL ALINHADO
 # ============================================================
 def html_lista(chave):
+
     itens = data["bmc"].get(chave, [])
 
     if not itens:
@@ -483,13 +484,20 @@ def html_lista(chave):
     html = "<ul>"
 
     for item in itens:
-        if item.strip():
-            html += f"<li>{item}</li>"
+
+        texto = (
+            item.get("texto", "")
+            if isinstance(item, dict)
+            else str(item)
+        )
+
+        if texto.strip():
+            html += f"<li>{texto}</li>"
 
     html += "</ul>"
 
     return html
-
+    
 st.divider()
 
 st.header("📊 Business Model Canvas")
@@ -632,8 +640,9 @@ with col_export1:
         texto_canvas += f"{titulo}\n"
         if itens:
             for item in itens:
-                if item.strip():
-                    texto_canvas += f"• {item}\n"
+                texto = item.get("texto","") if isinstance(item,dict) else str(item)
+                if texto.strip():
+                    texto_canvas += f"• {texto}\n"
         else:
             texto_canvas += "(não preenchido)\n"
         texto_canvas += "\n"
