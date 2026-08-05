@@ -11,7 +11,7 @@ class Buffer:
 
         self.lock = Lock()
 
-        self.max_size = 50
+        self.max_size = 5
 
 
     def add(self, event):
