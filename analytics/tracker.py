@@ -1,7 +1,9 @@
 from .bus import event_bus
 from .context import current_operation
 from .context import current_session
+from .environment import get_environment
 from .models import Event
+
 
 
 def track(
@@ -11,21 +13,45 @@ def track(
     metadata=None,
 ):
 
+    event_metadata = {}
+
+    event_metadata.update(
+        get_environment()
+    )
+
+
+    if metadata:
+
+        event_metadata.update(
+            metadata
+        )
+
+
     e = Event(
 
-        operation_id=current_operation() or "",
+        operation_id=
+        current_operation() or "",
 
-        session_id=current_session(),
+        session_id=
+        current_session(),
 
-        event=event.value if hasattr(event, "value") else str(event),
+        event=
+        event.value
+        if hasattr(event, "value")
+        else str(event),
 
-        module=module.value if hasattr(module, "value") else (
-            module or ""
-        ),
+
+        module=
+        module.value
+        if hasattr(module, "value")
+        else (module or ""),
+
 
         duration=duration,
 
-        metadata=metadata or {}
+
+        metadata=event_metadata
     )
+
 
     event_bus.publish(e)
