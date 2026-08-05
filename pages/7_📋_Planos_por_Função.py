@@ -6,6 +6,11 @@ from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
 from utils.analytics import UXMonitor
+from analytics import Module
+from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 monitor = UXMonitor()
 page_name = "Planos Departamentais"
@@ -16,6 +21,9 @@ init_data()
 data = get_data()
 
 st.sidebar.title("🧭 Gestor Estratégico")
+module_started(
+    Module.PLANO_FUNCAO
+)
 sidebar_data_controls()
 
 st.title("🏢 Planos Departamentais")
