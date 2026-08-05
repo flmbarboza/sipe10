@@ -1,6 +1,6 @@
 from threading import Lock
 
-from . import sheets
+from .storage import storage
 
 
 class Buffer:
@@ -11,7 +11,7 @@ class Buffer:
 
         self.lock = Lock()
 
-        self.max_size = 1
+        self.max_size = 50
 
 
     def add(self, event):
@@ -25,23 +25,14 @@ class Buffer:
                 self.flush()
 
 
-    def flush():
-    
+    def flush(self):
+
         if not self.events:
             return
-    
-        try:
-    
-            sheets.save_many(self.events)
-    
-        except Exception as e:
-    
-            print(e)
-    
-        finally:
-    
-            self.events.clear()
 
+        storage.save_many(self.events)
+
+        self.events.clear()
 
 
 buffer = Buffer()
