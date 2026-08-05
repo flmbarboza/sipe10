@@ -12,7 +12,6 @@ from analytics import Module
 from analytics import module_started
 from analytics import module_completed
 from analytics import track
-from analytics import EventType
 from analytics.item_factory import new_user_item
 
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
@@ -317,18 +316,10 @@ data["bmc"][chave] = [
 ]
 
 track(
-    EventType.CANVAS_SAVED,
+    event="canvas_saved",
     module=Module.CANVAS,
     metadata={
-        "current_block": chave,
-        "current_step": etapa_atual + 1,
-        "total_steps": len(ETAPAS_BMC),
-        "items_in_block": len(
-            [
-                x for x in st.session_state[session_key]
-                if x["texto"].strip()
-            ]
-        )
+        "filled_blocks": 9
     }
 )
 
