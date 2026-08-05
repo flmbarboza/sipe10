@@ -485,11 +485,10 @@ def html_lista(chave):
 
     for item in itens:
 
-        texto = (
-            item.get("texto", "")
-            if isinstance(item, dict)
-            else str(item)
-        )
+        if isinstance(item, dict):
+            texto = item.get("texto", "")
+        else:
+            texto = str(item)
 
         if texto.strip():
             html += f"<li>{texto}</li>"
