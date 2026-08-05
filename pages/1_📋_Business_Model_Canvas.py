@@ -13,6 +13,7 @@ from analytics import module_started
 from analytics import module_completed
 from analytics import track
 from analytics import EventType
+from analytics.item_factory import new_user_item
 
 st.set_page_config(page_title="Business Model Canvas",page_icon="📋",layout="wide")
 init_page(Module.CANVAS)
@@ -304,10 +305,7 @@ if st.button(
     use_container_width=True
 ):
     st.session_state[session_key].append(
-        {
-            "id": uuid.uuid4().hex,
-            "texto": ""
-        }
+        new_user_item()
     )
     st.rerun()
 
