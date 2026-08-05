@@ -4,6 +4,9 @@ from .enums import EventType
 from .enums import Module
 
 from .bus import event_bus
+
 from .console import console_handler
+from .storage import storage
 
 event_bus.subscribe(console_handler)
+event_bus.subscribe(storage.save)
