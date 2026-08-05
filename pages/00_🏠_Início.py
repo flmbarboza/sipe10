@@ -3,7 +3,6 @@ from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.ai_helper import sidebar_api_key_input
 from utils.chat import render_chat
 from analytics import track
-from analytics import EventType
 from analytics import Module
 from analytics import (
     init_session,
@@ -11,24 +10,12 @@ from analytics import (
     check_timeout
 )
 
-track(
-    EventType.ERROR,
-    module=Module.HOME,
-    metadata={
-        "teste": "analytics funcionando"
-    }
-)
 
 init_session()
 
 update_activity()
 
 check_timeout()
-
-track(
-    EventType.PAGE_OPEN,
-    module=Module.HOME
-)
 
 st.set_page_config(
     page_title="Gestor Estratégico",
