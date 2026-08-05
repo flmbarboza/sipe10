@@ -1,5 +1,4 @@
-from pprint import pprint
-
+from .bus import event_bus
 from .models import Event
 
 
@@ -9,12 +8,6 @@ def track(
     duration=None,
     metadata=None,
 ):
-    """
-    Registra um evento do sistema.
-
-    Nesta primeira sprint apenas imprime
-    o evento no terminal.
-    """
 
     e = Event(
         event=event.value if hasattr(event, "value") else str(event),
@@ -25,6 +18,4 @@ def track(
         metadata=metadata or {},
     )
 
-    print("\n========== EVENT ==========")
-    pprint(e)
-    print("===========================\n")
+    event_bus.publish(e)
