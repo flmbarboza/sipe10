@@ -1,6 +1,6 @@
 from threading import Lock
 
-from .storage import storage
+from . import sheets
 
 
 class Buffer:
