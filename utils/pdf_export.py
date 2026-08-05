@@ -5,7 +5,12 @@ e converte em um PDF básico, mas legível.
 """
 
 from fpdf import FPDF
+from analytics import pdf_generated
 
+
+pdf_generated(
+    pages=25
+)
 
 class RelatorioPDF(FPDF):
     def header(self):
