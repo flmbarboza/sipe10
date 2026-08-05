@@ -5,17 +5,20 @@ import base64
 import pandas as pd
 from datetime import datetime
 from openai import OpenAI
-from utils.analytics import UXMonitor
-
-monitor = UXMonitor()
-page_name = "Relatório"
-monitor.track_event('page_view', page_name)
+from analytics import Module
+from analytics import module_started
+from analytics import module_completed
+from analytics import track
+from analytics import EventType
 
 st.set_page_config(page_title="Relatório Completo", page_icon="📄", layout="wide")
 init_data()
 data = get_data()
 
 st.sidebar.title("🧭 Gestor Estratégico")
+module_started(
+    Module.RELATORIO
+)
 sidebar_data_controls()
 
 st.title("📄 Relatório Completo")
