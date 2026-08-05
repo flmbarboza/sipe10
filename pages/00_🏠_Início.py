@@ -11,6 +11,12 @@ from analytics import (
     check_timeout
 )
 
+init_session()
+
+update_activity()
+
+check_timeout()
+
 track(
     EventType.PAGE_OPEN,
     module=Module.HOME
