@@ -796,9 +796,35 @@ with col_export3:
 module_completed(
     Module.CANVAS,
     metadata={
-        "blocks_completed": 9
+
+        "blocks_completed": len(
+            [
+                bloco
+                for bloco in ETAPAS_BMC
+                if data["bmc"].get(bloco["chave"])
+            ]
+        ),
+
+        "total_blocks": len(ETAPAS_BMC),
+
+        "completion_rate":
+            round(
+                len(
+                    [
+                        bloco
+                        for bloco in ETAPAS_BMC
+                        if data["bmc"].get(bloco["chave"])
+                    ]
+                )
+                /
+                len(ETAPAS_BMC)
+                *
+                100,
+                2
+            )
     }
 )
+
 # ============================================================
 # ASSISTENTE IA GERAL DO CANVAS
 # ============================================================
