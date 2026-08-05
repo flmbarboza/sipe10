@@ -8,6 +8,10 @@ class EventType(str, Enum):
     MODULE_START = "module_start"
     MODULE_FINISH = "module_finish"
 
+    SESSION_START = "session_start"
+
+    SESSION_END = "session_end"
+    
     BUTTON_CLICK = "button_click"
 
     SAVE = "save"
