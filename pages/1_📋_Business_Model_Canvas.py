@@ -313,6 +313,13 @@ data["bmc"][chave] = [
     if item["texto"].strip()
 ]
 
+track(
+    EventType.CANVAS_SAVED,
+    module=Module.CANVAS,
+    metadata={
+        "filled_blocks": len(canvas_data)
+    }
+)
 # ============================================================
 # AJUDA DA IA - GERAR SUGESTÕES
 # ============================================================
