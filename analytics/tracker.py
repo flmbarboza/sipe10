@@ -1,57 +1,53 @@
-from .bus import event_bus
-from .context import current_operation
-from .context import current_session
-from .environment import get_environment
-from .models import Event
+from inspect import stack
 
+from utils.data_manager import get_data
+
+from .buffer import buffer
+from .models import Event, now, new_uuid
+from .session import get_session, get_operation
+
+
+_last_timestamp = None
+
+
+def _page_name():
+
+    try:
+        frame = stack()[2]
+        return frame.filename.split("/")[-1]
+
+    except Exception:
+        return ""
 
 
 def track(
     event,
-    module=None,
-    duration=None,
-    metadata=None,
+    module,
+    action="",
+    metadata=None
 ):
 
-    event_metadata = {}
+    global _last_timestamp
 
-    event_metadata.update(
-        get_environment()
-    )
+    if metadata is None:
+        metadata = {}
 
+    data = get_data()
 
-    if metadata:
-
-        event_metadata.update(
-            metadata
-        )
-
+    empresa = data.get("empresa", {})
 
     e = Event(
-
-        operation_id=
-        current_operation() or "",
-
-        session_id=
-        current_session(),
-
-        event=
-        event.value
-        if hasattr(event, "value")
-        else str(event),
-
-
-        module=
-        module.value
-        if hasattr(module, "value")
-        else (module or ""),
-
-
-        duration=duration,
-
-
-        metadata=event_metadata
+        timestamp=now(),
+        event_id=new_uuid(),
+        session_id=get_session(),
+        operation_id=get_operation(),
+        page=_page_name(),
+        module=module,
+        event=event,
+        action=action,
+        company_name=empresa.get("nome", ""),
+        company_sector=empresa.get("setor", ""),
+        metadata=metadata
     )
 
-
-    event_bus.publish(e)
+    buffer.add(e)
