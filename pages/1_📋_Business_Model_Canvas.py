@@ -338,11 +338,10 @@ with col_ia2:
 
 if gerar_sugestao:
     track(
-        EventType.AI_REQUEST,
+        event="ai_request",
         module=Module.CANVAS,
         metadata={
             "block": chave,
-            "step": etapa_atual + 1
         }
     )
     with st.spinner("🤔 Analisando o modelo de negócio..."):
