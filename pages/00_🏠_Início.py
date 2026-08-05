@@ -5,6 +5,11 @@ from utils.chat import render_chat
 from analytics import track
 from analytics import EventType
 from analytics import Module
+from analytics import (
+    init_session,
+    update_activity,
+    check_timeout
+)
 
 track(
     EventType.PAGE_OPEN,
