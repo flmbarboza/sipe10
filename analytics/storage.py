@@ -78,5 +78,62 @@ class Storage:
 
         self.conn.commit()
 
+    def get_pending(self, limit=100):
+
+        cursor = self.conn.execute(
+            """
+            SELECT
+                event_id,
+                operation_id,
+                session_id,
+                timestamp,
+                event,
+                module,
+                duration,
+                metadata
+            FROM events
+            WHERE status='PENDING'
+            ORDER BY timestamp
+            LIMIT ?
+            """,
+            (limit,)
+        )
+
+        rows = cursor.fetchall()
+
+        events = []
+
+        for row in rows:
+
+            events.append({
+
+                "event_id": row[0],
+                "operation_id": row[1],
+                "session_id": row[2],
+                "timestamp": row[3],
+                "event": row[4],
+                "module": row[5],
+                "duration": row[6],
+                "metadata": json.loads(row[7]),
+            })
+
+        return events
+
+
+    def mark_sent(self, ids):
+
+        if not ids:
+            return
+
+        self.conn.executemany(
+            """
+            UPDATE events
+            SET status='SENT'
+            WHERE event_id=?
+            """,
+            [(i,) for i in ids]
+        )
+
+        self.conn.commit()
 
 storage = Storage()
