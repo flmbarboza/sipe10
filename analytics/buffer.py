@@ -2,6 +2,7 @@ from threading import Lock
 
 from . import sheets
 
+
 class Buffer:
 
     def __init__(self):
@@ -29,7 +30,7 @@ class Buffer:
         if not self.events:
             return
 
-        storage.save_many(self.events)
+        sheets.save_many(self.events)
 
         self.events.clear()
 
