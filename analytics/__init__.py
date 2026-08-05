@@ -7,7 +7,7 @@ from .tracker import (
     end_observation,
 )
 
-from .models import EventType, Module
+from .models import Module
 
 __all__ = [
     "track",
@@ -16,6 +16,5 @@ __all__ = [
     "module_completed",
     "begin_observation",
     "end_observation",
-    "EventType",
     "Module",
 ]
