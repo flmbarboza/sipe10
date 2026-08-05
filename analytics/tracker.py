@@ -4,10 +4,13 @@ from .buffer import buffer
 from .models import Event, now, new_uuid
 from .session import get_session, get_operation, module_duration
 import time
+from copy import deepcopy
+from .observer import observer
 
 _last_event = None
 _last_timestamp = None
-
+# Guarda o estado inicial de cada coleção observada
+_state_cache = {}
 
 def _page_name():
 
@@ -57,3 +60,42 @@ def track(
     )
 
     buffer.add(e)
+
+def begin_observation(key: str, items: list[dict]):
+    """
+    Salva uma cópia do estado atual.
+    """
+    _state_cache[key] = deepcopy(items)
+
+
+def end_observation(
+    key: str,
+    items: list[dict],
+    module,
+):
+    """
+    Compara o estado anterior com o atual e registra os eventos.
+    """
+
+    before = _state_cache.get(key)
+
+    if before is None:
+        return
+
+    changes = observer.observe(
+        before=before,
+        after=items
+    )
+
+    for change in changes:
+
+        track(
+            event=change.event,
+            module=module,
+            metadata={
+                "item_id": change.item_id,
+                "fields": ",".join(change.changed_fields)
+            }
+        )
+
+    _state_cache[key] = deepcopy(items)
