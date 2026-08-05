@@ -103,12 +103,18 @@ def end_observation(
 # ==========================================================
 from .session import module_enter
 
-def init_page():
+def init_page(module=None):
     """
-    Mantido por compatibilidade.
-    Futuramente poderá registrar page_view automaticamente.
+    Inicialização da página.
+    Registra entrada no módulo quando informado.
     """
-    return
+    if module is not None:
+        module_enter(module)
+
+        track(
+            event="page_opened",
+            module=module
+        )
 
 def module_started(module):
     """
