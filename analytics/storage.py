@@ -1,5 +1,6 @@
 from pathlib import Path
 import sqlite3
+import json
 
 from .models import Event
 
@@ -44,24 +45,35 @@ class Storage:
 
         self.conn.commit()
 
-    def save(self, event: Event):
+    def save_many(self, events: list[Event]):
 
-        self.conn.execute(
+        if not events:
+            return
+
+        rows = []
+
+        for e in events:
+
+            rows.append(
+                (
+                    e.event_id,
+                    e.operation_id,
+                    e.session_id,
+                    e.timestamp,
+                    e.event,
+                    e.module,
+                    e.duration,
+                    json.dumps(e.metadata, ensure_ascii=False),
+                    "PENDING",
+                )
+            )
+
+        self.conn.executemany(
             """
             INSERT INTO events
-            VALUES(?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?)
             """,
-            (
-                event.event_id,
-                event.operation_id,
-                event.session_id,
-                event.timestamp,
-                event.event,
-                event.module,
-                event.duration,
-                str(event.metadata),
-                "PENDING"
-            )
+            rows,
         )
 
         self.conn.commit()
