@@ -5,11 +5,6 @@ import re
 from utils.data_manager import init_data, get_data, sidebar_data_controls
 from utils.chat import render_chat
 from openai import OpenAI
-from utils.analytics import UXMonitor
-
-monitor = UXMonitor()
-page_name = "Análise PESTEL"
-monitor.track_event('page_view', page_name)
 
 st.set_page_config(page_title="Análise PESTEL", page_icon="🌍", layout="wide")
 init_data()
@@ -18,7 +13,10 @@ data = get_data()
 st.sidebar.title("🧭 Gestor Estratégico")
 sidebar_data_controls()
 
-st.title("🌍 Análise PESTEL")
+st.title("🌍 Análise PESTEL")    
+module_started(
+    Module.PESTEL
+)
 st.caption(
     "Mapeie os fatores externos que afetam o negócio. Estes itens poderão ser usados "
     "depois para alimentar a Análise SWOT (Oportunidades e Ameaças)."
