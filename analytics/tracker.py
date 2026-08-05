@@ -95,7 +95,9 @@ def end_observation(
             module=module,
             metadata={
                 "item_id": change.item_id,
-                "fields": ",".join(change.changed_fields)
+                "fields": ",".join(change.changed_fields),
+                "before": change.before,
+                "after": change.after
             }
         )
 
