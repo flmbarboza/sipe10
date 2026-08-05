@@ -8,7 +8,6 @@ from copy import deepcopy
 from .observer import observer
 
 _last_event = None
-_last_timestamp = None
 # Guarda o estado inicial de cada coleção observada
 _state_cache = {}
 
@@ -38,7 +37,6 @@ def track(
         )
     _last_event = agora
     
-    global _last_timestamp
     if metadata is None:
         metadata = {}
     data = get_data()
@@ -103,9 +101,7 @@ def end_observation(
 # ==========================================================
 # Controle de páginas e módulos
 # ==========================================================
-
-from .session import start_module
-
+from .session import module_enter
 
 def init_page():
     """
@@ -114,19 +110,15 @@ def init_page():
     """
     return
 
-
 def module_started(module):
     """
     Registra o início de um módulo.
     """
-
-    start_module(module)
-
+    module_enter(module)
     track(
         event="module_started",
         module=module
     )
-
 
 def module_completed(
     module,
@@ -135,7 +127,6 @@ def module_completed(
     """
     Registra a conclusão de um módulo.
     """
-
     track(
         event="module_completed",
         module=module,
